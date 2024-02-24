@@ -1,6 +1,5 @@
 package com.neure.agent.ui;
 
-import lombok.Data;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.List;
  * @author tc
  * @date 2024-02-24 21:43
  */
-@Data
 public class TreeNode {
     private String name = "";
     private String type = "";
