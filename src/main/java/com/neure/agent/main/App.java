@@ -20,7 +20,7 @@ public class App  {
     }
 
     private static BackEndServer initialServer(Session session) {
-        return new BackEndServer();
+        return new BackEndServer(session);
     }
 
     private static Session initialSession() {

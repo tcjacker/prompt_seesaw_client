@@ -1,10 +1,12 @@
 package com.neure.agent.client;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import com.neure.agent.model.Response;
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.*;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 
 /**
@@ -13,45 +15,65 @@ import java.net.URL;
  * @author tc
  * @date 2024-02-25 15:28
  */
+@Slf4j
 public class HttpRequestClient {
 
-    public static String sendRequest(String urlString, String method, String payload) {
-        BufferedReader in = null;
-        HttpURLConnection connection = null;
+    // 发送GET请求
+    public static String sendGet(String url)  {
+        URL obj = null;
         try {
-            URL url = new URL(urlString);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod(method);
+            obj = new URL(url);
+            HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
 
-            // For methods that send data, configure the connection to output mode and write the payload
-            if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
-                connection.setDoOutput(true); // For sending request body
-                try (OutputStream os = connection.getOutputStream()) {
-                    os.write(payload.getBytes(), 0, payload.length());
-                }
+            connection.setRequestMethod("GET");
+
+            int responseCode = connection.getResponseCode();
+            System.out.println("GET Response Code :: " + responseCode);
+            if (responseCode != 200){
+                return Response.buildError();
             }
 
-            // For all methods, read the response
-            in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                return response.toString();
+            }
+
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+        return Response.buildError();
+
+    }
+
+    // 发送POST请求
+    public static String sendPost(String url, String urlParameters) throws Exception {
+        URL obj = new URL(url);
+        HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
+
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
+            wr.writeBytes(urlParameters);
+            wr.flush();
+        }
+
+        int responseCode = connection.getResponseCode();
+        System.out.println("POST Response Code :: " + responseCode);
+
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
             String inputLine;
             StringBuilder response = new StringBuilder();
+
             while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine).append("\n");
+                response.append(inputLine);
             }
+
             return response.toString();
-        } catch (Exception ex) {
-            return "Error: " + ex.getMessage();
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            } catch (IOException e) {
-                System.out.println("Error closing resources: " + e.getMessage());
-            }
         }
     }
 }

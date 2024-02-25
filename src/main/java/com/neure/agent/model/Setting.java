@@ -22,7 +22,7 @@ public class Setting {
 
     private String url;
 
-    private String projectId;
+    private Integer projectId;
 
     private String token;
 
@@ -44,7 +44,7 @@ public class Setting {
 
             Map<String, Object> project = (Map<String, Object>) data.get("project");
             if (project != null && project.size() > 0){
-                projectId = String.valueOf(project.get("id"));
+                projectId = (Integer) project.get("id");
             }
 
             token = (String) data.get("token");
@@ -95,11 +95,11 @@ public class Setting {
         flush();
     }
 
-    public String getProjectId() {
+    public Integer getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(String projectId) {
+    public void setProjectId(int projectId) {
         this.projectId = projectId;
         flush();
     }

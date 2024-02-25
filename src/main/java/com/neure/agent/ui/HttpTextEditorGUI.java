@@ -49,6 +49,9 @@ public class HttpTextEditorGUI extends JFrame {
         this.session = session;
         this.backEndServer = backEndServer;
         this.setting = new Setting();
+        this.session.setProjectId(setting.getProjectId());
+        this.session.setToken(setting.getToken());
+        this.session.setUrl(setting.getUrl());
 
         setTitle("Prompt-SeeSaw 看见未来");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -88,6 +91,10 @@ public class HttpTextEditorGUI extends JFrame {
 
 
     public void reDraw(){
+        this.session.setProjectId(setting.getProjectId());
+        this.session.setToken(setting.getToken());
+        this.session.setUrl(setting.getUrl());
+
         rootData = initialTreeNode();
         DefaultTreeModel newTreeModel = new DefaultTreeModel(rootData);
         tree.setModel(newTreeModel);
@@ -155,20 +162,43 @@ public class HttpTextEditorGUI extends JFrame {
         // 为新建prompt菜单项添加事件处理器（根据需要实现）
         newPromptItem.addActionListener(e -> {
             String nodeName = JOptionPane.showInputDialog(null, "请输入节点名称:", "新建节点", JOptionPane.PLAIN_MESSAGE);
-            DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(nodeName); // 使用用户输入的名称创建新节点
+            TreeNode newNode = backEndServer.reNamePrompt(nodeName); // 使用用户输入的名称创建新节点
             treeModel.insertNodeInto(newNode, rootData, rootData.getChildCount()); // 将新节点添加到根节点下
             tree.scrollPathToVisible(new TreePath(newNode.getPath()));
         });
 
         projectIdItem.addActionListener(e -> {
-            String projectId = JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE);
-            setting.setProjectId(projectId);
-            reDraw();
+            boolean isValidInput = false;
+            while (!isValidInput){
+                String  input = (String) JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE,null, null, String.valueOf(setting.getProjectId()));
+                if (input != null)  {
+                    try {
+                        int projectId = Integer.parseInt(input);
+                        // 如果转换成功，说明是有效的int类型，可以退出循环
+                        isValidInput = true;
+                        setting.setProjectId(projectId);
+                        reDraw();
+                    } catch (NumberFormatException e2) {
+                        // 输入的不是int类型，显示错误消息，并让循环继续
+                        JOptionPane.showMessageDialog(null, "输入的项目ID不是有效的整数，请重新输入！", "错误", JOptionPane.ERROR_MESSAGE);
+                    }
+                }else {
+                    break;
+                }
+
+            }
+
         });
 
         hostUrlItem.addActionListener(e -> {
-            String url = JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE);
-            setting.setUrl(url);
+            String url = (String) JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE,null,null,session.getUrl());
+            if (url != null && url.startsWith("http://")){
+                setting.setUrl(url);
+            }else {
+                JOptionPane.showMessageDialog(null, "输入的host地址必须以http://开头", "错误", JOptionPane.ERROR_MESSAGE);
+            }
+
+
         });
 
         // 为退出菜单项添加事件处理器
@@ -182,7 +212,7 @@ public class HttpTextEditorGUI extends JFrame {
         JPanel httpPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        httpTextField = new JTextField();
+        httpTextField = new JTextField(session.getUrl());
         JTextArea httpResponseArea = new JTextArea();
         httpResponseArea.setEditable(false);
 

@@ -1,8 +1,13 @@
 package com.neure.agent.server;
 
-import com.neure.agent.model.LLMRequestLog;
-import com.neure.agent.model.PromptTemplate;
-import com.neure.agent.model.TreeNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.neure.agent.client.HttpRequestClient;
+import com.neure.agent.constant.HTTPMethod;
+import com.neure.agent.model.*;
+import com.neure.agent.utils.JacksonUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.io.BufferedReader;
@@ -18,29 +23,49 @@ import java.util.List;
  * @author tc
  * @date 2024-02-25 14:55
  */
+@Slf4j
 public class BackEndServer {
 
     Session session;
 
-    private String url;
 
-    int c = 1;
+
+    public BackEndServer(Session session){
+        this.session = session;
+    }
+
+    public  TreeNode reNamePrompt(String nodeName) {
+        return new TreeNode(nodeName);
+    }
+
 
     public TreeNode getPromptTree(){
-        TreeNode rootData = new TreeNode("Root", "Type1");
-        if (c > 1){
-            rootData.addChild(new TreeNode("X Child 1", "Type2"));
-            rootData.addChild(new TreeNode("X Child 2", "Type3"));
-            TreeNode child3 = new TreeNode("X Child 3", "Type4");
-            child3.addChild(new TreeNode("X Grandchild 1", "Type5"));
-            rootData.addChild(child3);
-        }else {
-            rootData.addChild(new TreeNode("Child 1", "Type2"));
-            rootData.addChild(new TreeNode("Child 2", "Type3"));
+        int projectId = session.projectId;
+        Project project = queryProject(projectId);
+        if (project == null){
+            return new TreeNode("空","Type1");
         }
-        c++;
+        TreeNode rootData = new TreeNode(project.getName(), "Type1");
         return rootData;
     }
+
+    public Project queryProject(int id){
+        String requestUrl = session.url + "project/get/" + id;
+        String responseStr = HttpRequestClient.sendGet(requestUrl);
+        log.info(responseStr);
+        try {
+            Response<Project> response = JacksonUtils.StrToObject(responseStr,new TypeReference<Response<Project>>(){});
+            if (response.getCode() != 200){
+                log.error(response.getMessage());
+                return null;
+            }
+            return response.getBody();
+        } catch (JsonProcessingException e) {
+            log.error("response is [ " + responseStr + " ] err:" + e.getMessage());
+            return null;
+        }
+    }
+
 
     public boolean addTreeNode(TreeNode node){
         return false;

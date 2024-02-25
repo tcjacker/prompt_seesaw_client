@@ -16,6 +16,8 @@ public class TreeNode extends DefaultMutableTreeNode {
     private Integer id = -1;
     private String name = "";
     private String type = "";
+
+    private String status = "";
     private List<TreeNode> children = new ArrayList<>();
 
     public TreeNode(){}
@@ -56,5 +58,21 @@ public class TreeNode extends DefaultMutableTreeNode {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setChildren(List<TreeNode> children) {
+        this.children = children;
     }
 }

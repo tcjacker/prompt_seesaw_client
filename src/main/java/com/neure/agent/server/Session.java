@@ -11,13 +11,42 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class Session {
 
-    private final ConcurrentMap<String, Object> session = new ConcurrentHashMap<>();
+    int projectId ;
+
+    String token;
+
+    String url;
+    private final ConcurrentMap<String, Object> params = new ConcurrentHashMap<>();
 
     public void set(String key, Object o) {
-        session.put(key, o);
+        params.put(key, o);
     }
 
     public Object get(String key) {
-        return session.get(key);
+        return params.get(key);
+    }
+
+    public int getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(int projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 }
