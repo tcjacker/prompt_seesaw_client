@@ -37,19 +37,24 @@ public class HttpTextEditorGUI extends JFrame {
 
     Setting setting;
 
+    JTextField httpTextField;
+
+    DefaultListModel<String> historyModel;
+
+    JTextArea detailTextArea;
+
 
     public HttpTextEditorGUI(Session session, BackEndServer backEndServer) {
 
         this.session = session;
         this.backEndServer = backEndServer;
+        this.setting = new Setting();
 
         setTitle("Prompt-SeeSaw 看见未来");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1920, 1080);
-
         // 构建树形结构菜单
         tree = initialTree();
-
         JScrollPane treeScrollPane = new JScrollPane(tree);
 
 
@@ -58,7 +63,7 @@ public class HttpTextEditorGUI extends JFrame {
         JScrollPane textScrollPane = new JScrollPane(textPane);
 
         // 右侧HTTP请求部分
-        JPanel httpPanel = initialHttppPanel(textPane);
+        JPanel httpPanel = initialHttpPanel(textPane);
 
         // 定义历史记录列表模型
         JSplitPane historyDetailSplitPane = initialHistoryPane();
@@ -78,14 +83,28 @@ public class HttpTextEditorGUI extends JFrame {
         JMenuBar menuBar = initialMenuBar();
         // 将菜单栏设置到窗体（JFrame）中
         getContentPane().add(menuBar, BorderLayout.NORTH);
+
+    }
+
+
+    public void reDraw(){
+        rootData = initialTreeNode();
+        DefaultTreeModel newTreeModel = new DefaultTreeModel(rootData);
+        tree.setModel(newTreeModel);
+
+        httpTextField.setText(setting.getUrl());
+        detailTextArea.setText("");
+        historyModel.clear();
+
+
     }
 
     private JSplitPane initialHistoryPane() {
-        DefaultListModel<String> historyModel = new DefaultListModel<>();
+        historyModel = new DefaultListModel<>();
         JList<String> historyList = new JList<>(historyModel);
 
         // 定义显示详细返回内容的文本区域
-        JTextArea detailTextArea = new JTextArea();
+        detailTextArea = new JTextArea();
         detailTextArea.setEditable(false);
 
         // 为历史记录列表添加选择监听器
@@ -144,7 +163,12 @@ public class HttpTextEditorGUI extends JFrame {
         projectIdItem.addActionListener(e -> {
             String projectId = JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE);
             setting.setProjectId(projectId);
+            reDraw();
+        });
 
+        hostUrlItem.addActionListener(e -> {
+            String url = JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE);
+            setting.setUrl(url);
         });
 
         // 为退出菜单项添加事件处理器
@@ -154,11 +178,11 @@ public class HttpTextEditorGUI extends JFrame {
         return menuBar;
     }
 
-    private JPanel initialHttppPanel(JTextPane textPane) {
+    private JPanel initialHttpPanel(JTextPane textPane) {
         JPanel httpPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        JTextField httpTextField = new JTextField();
+        httpTextField = new JTextField();
         JTextArea httpResponseArea = new JTextArea();
         httpResponseArea.setEditable(false);
 
@@ -218,7 +242,7 @@ public class HttpTextEditorGUI extends JFrame {
         rootData = initialTreeNode();
         treeModel = new DefaultTreeModel(rootData);
         JPopupMenu popupMenu = new JPopupMenu();
-        JTree tree = new JTree(treeModel);
+        tree = new JTree(treeModel);
         JMenuItem deleteItem = new JMenuItem("删除");
         JMenuItem renameItem = new JMenuItem("重命名");
         popupMenu.add(deleteItem);

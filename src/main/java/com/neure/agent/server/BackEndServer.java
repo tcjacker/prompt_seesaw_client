@@ -24,13 +24,21 @@ public class BackEndServer {
 
     private String url;
 
+    int c = 1;
+
     public TreeNode getPromptTree(){
         TreeNode rootData = new TreeNode("Root", "Type1");
-        rootData.addChild(new TreeNode("Child 1", "Type2"));
-        rootData.addChild(new TreeNode("Child 2", "Type3"));
-        TreeNode child3 = new TreeNode("Child 3", "Type4");
-        child3.addChild(new TreeNode("Grandchild 1", "Type5"));
-        rootData.addChild(child3);
+        if (c > 1){
+            rootData.addChild(new TreeNode("X Child 1", "Type2"));
+            rootData.addChild(new TreeNode("X Child 2", "Type3"));
+            TreeNode child3 = new TreeNode("X Child 3", "Type4");
+            child3.addChild(new TreeNode("X Grandchild 1", "Type5"));
+            rootData.addChild(child3);
+        }else {
+            rootData.addChild(new TreeNode("Child 1", "Type2"));
+            rootData.addChild(new TreeNode("Child 2", "Type3"));
+        }
+        c++;
         return rootData;
     }
 

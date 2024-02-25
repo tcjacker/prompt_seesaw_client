@@ -44,7 +44,7 @@ public class Setting {
 
             Map<String, Object> project = (Map<String, Object>) data.get("project");
             if (project != null && project.size() > 0){
-                projectId = (String) project.get("id");
+                projectId = String.valueOf(project.get("id"));
             }
 
             token = (String) data.get("token");

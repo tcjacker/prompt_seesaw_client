@@ -26,6 +26,11 @@ public class TreeNode extends DefaultMutableTreeNode {
         this.type = type;
     }
 
+    public TreeNode(String name) {
+        super(name);
+        this.name = name;
+    }
+
     // 添加子节点
     public void addChild(TreeNode child) {
         children.add(child);
