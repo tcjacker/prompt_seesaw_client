@@ -1,12 +1,15 @@
 package com.neure.agent.ui;
 
+import com.neure.agent.model.Setting;
+import com.neure.agent.model.TreeNode;
+import com.neure.agent.server.BackEndServer;
+import com.neure.agent.server.Session;
+
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -22,66 +25,125 @@ import java.net.URL;
  */
 public class HttpTextEditorGUI extends JFrame {
 
-    public HttpTextEditorGUI() {
+    Session session;
+
+    BackEndServer backEndServer;
+
+    JTree tree;
+
+    DefaultTreeModel treeModel;
+
+    TreeNode rootData;
+
+    Setting setting;
+
+
+    public HttpTextEditorGUI(Session session, BackEndServer backEndServer) {
+
+        this.session = session;
+        this.backEndServer = backEndServer;
+
         setTitle("Prompt-SeeSaw 看见未来");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1920, 1080);
 
         // 构建树形结构菜单
-        TreeNode rootData = new TreeNode("Root", "Type1");
-        rootData.addChild(new TreeNode("Child 1", "Type2"));
-        rootData.addChild(new TreeNode("Child 2", "Type3"));
-        TreeNode child3 = new TreeNode("Child 3", "Type4");
-        child3.addChild(new TreeNode("Grandchild 1", "Type5"));
-        rootData.addChild(child3);
-        DefaultMutableTreeNode rootNode = convertToTreeNode(rootData);
-        DefaultTreeModel treeModel = new DefaultTreeModel(rootNode);
+        tree = initialTree();
 
-        JTree tree = new JTree(treeModel);
         JScrollPane treeScrollPane = new JScrollPane(tree);
 
-        JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem deleteItem = new JMenuItem("删除");
-        JMenuItem renameItem = new JMenuItem("重命名");
-        popupMenu.add(deleteItem);
-        popupMenu.add(renameItem);
-
-        // 为JTree添加鼠标监听器以显示弹出菜单
-        tree.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-                    tree.setSelectionRow(row); // 选择鼠标右击的行
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY()); // 在鼠标位置显示弹出菜单
-                }
-            }
-        });
-
-        // 实现删除操作
-        deleteItem.addActionListener(e -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-            if (selectedNode != null && selectedNode.getParent() != null) { // 确保选中的节点不是根节点
-                treeModel.removeNodeFromParent(selectedNode);
-            }
-        });
-
-        // 实现重命名操作
-        renameItem.addActionListener(e -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-            if (selectedNode != null) {
-                String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
-                if (newName != null && !newName.trim().isEmpty()) {
-                    selectedNode.setUserObject(newName);
-                    treeModel.nodeChanged(selectedNode);
-                }
-            }
-        });
 
         // 中间的富文本编辑框
         JTextPane textPane = new JTextPane();
         JScrollPane textScrollPane = new JScrollPane(textPane);
 
         // 右侧HTTP请求部分
+        JPanel httpPanel = initialHttppPanel(textPane);
+
+        // 定义历史记录列表模型
+        JSplitPane historyDetailSplitPane = initialHistoryPane();
+
+
+        // 使用JSplitPane分割窗口
+        JSplitPane splitPaneRight = new JSplitPane(JSplitPane.VERTICAL_SPLIT, httpPanel, historyDetailSplitPane);
+        splitPaneRight.setDividerLocation(200); // Adjust divider
+        JSplitPane splitPaneCenter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, textScrollPane, splitPaneRight);
+        splitPaneCenter.setDividerLocation(300);
+        JSplitPane splitPaneLeft = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, splitPaneCenter);
+        splitPaneLeft.setDividerLocation(150);
+
+        getContentPane().add(splitPaneLeft, BorderLayout.CENTER);
+
+        // 创建菜单栏
+        JMenuBar menuBar = initialMenuBar();
+        // 将菜单栏设置到窗体（JFrame）中
+        getContentPane().add(menuBar, BorderLayout.NORTH);
+    }
+
+    private JSplitPane initialHistoryPane() {
+        DefaultListModel<String> historyModel = new DefaultListModel<>();
+        JList<String> historyList = new JList<>(historyModel);
+
+        // 定义显示详细返回内容的文本区域
+        JTextArea detailTextArea = new JTextArea();
+        detailTextArea.setEditable(false);
+
+        // 为历史记录列表添加选择监听器
+        historyList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selectedValue = historyList.getSelectedValue();
+                // 假设我们可以根据selectedValue获取相应的详细信息
+                // 这里仅作为展示，实际应用中需要根据selectedValue获取实际内容
+                detailTextArea.setText("详细内容显示: " + selectedValue);
+            }
+        });
+
+        // 创建滚动面板包装历史列表和详细信息文本区域
+        JScrollPane historyScrollPane = new JScrollPane(historyList);
+        JScrollPane detailScrollPane = new JScrollPane(detailTextArea);
+
+        // 使用JSplitPane分割历史记录和详细内容的显示
+        JSplitPane historyDetailSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, historyScrollPane, detailScrollPane);
+        historyDetailSplitPane.setDividerLocation(300); // 根据需要调整分隔条位置
+        return historyDetailSplitPane;
+    }
+
+    private JMenuBar initialMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+
+        // 创建文件菜单及其菜单项
+        JMenu fileMenu = new JMenu("文件");
+        JMenuItem newPromptItem = new JMenuItem("新建prompt");
+        JMenuItem exitItem = new JMenuItem("退出");
+
+        // 将菜单项添加到文件菜单
+        fileMenu.add(newPromptItem);
+        fileMenu.addSeparator(); // 添加分隔线
+        fileMenu.add(exitItem);
+
+        // 创建设置菜单
+        JMenu settingsMenu = new JMenu("设置");
+
+        // 将文件和设置菜单添加到菜单栏
+        menuBar.add(fileMenu);
+        menuBar.add(settingsMenu);
+
+        // 为新建prompt菜单项添加事件处理器（根据需要实现）
+        newPromptItem.addActionListener(e -> {
+            String nodeName = JOptionPane.showInputDialog(null, "请输入节点名称:", "新建节点", JOptionPane.PLAIN_MESSAGE);
+            DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(nodeName); // 使用用户输入的名称创建新节点
+            treeModel.insertNodeInto(newNode, rootData, rootData.getChildCount()); // 将新节点添加到根节点下
+            tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+        });
+
+        // 为退出菜单项添加事件处理器
+        exitItem.addActionListener(e -> {
+            System.exit(0); // 关闭程序
+        });
+        return menuBar;
+    }
+
+    private JPanel initialHttppPanel(JTextPane textPane) {
         JPanel httpPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -132,87 +194,61 @@ public class HttpTextEditorGUI extends JFrame {
         httpPanel.add(publishButton, gbc);
 
 
-
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridwidth = GridBagConstraints.ABOVE_BASELINE;
-//        gbc.weightx = 3.0; // 让滚动面板填充剩余空间
         httpPanel.add(httpResponseScrollPane, gbc);
+        return httpPanel;
+    }
 
-        // 定义历史记录列表模型
-        DefaultListModel<String> historyModel = new DefaultListModel<>();
-        JList<String> historyList = new JList<>(historyModel);
+    private JTree initialTree() {
+        rootData = initialTreeNode();
+        treeModel = new DefaultTreeModel(rootData);
+        JPopupMenu popupMenu = new JPopupMenu();
+        JTree tree = new JTree(treeModel);
+        JMenuItem deleteItem = new JMenuItem("删除");
+        JMenuItem renameItem = new JMenuItem("重命名");
+        popupMenu.add(deleteItem);
+        popupMenu.add(renameItem);
 
-        // 定义显示详细返回内容的文本区域
-        JTextArea detailTextArea = new JTextArea();
-        detailTextArea.setEditable(false);
-
-        // 为历史记录列表添加选择监听器
-        historyList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selectedValue = historyList.getSelectedValue();
-                // 假设我们可以根据selectedValue获取相应的详细信息
-                // 这里仅作为展示，实际应用中需要根据selectedValue获取实际内容
-                detailTextArea.setText("详细内容显示: " + selectedValue);
+        // 为JTree添加鼠标监听器以显示弹出菜单
+        tree.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int row = tree.getClosestRowForLocation(e.getX(), e.getY());
+                    tree.setSelectionRow(row); // 选择鼠标右击的行
+                    popupMenu.show(e.getComponent(), e.getX(), e.getY()); // 在鼠标位置显示弹出菜单
+                }
             }
         });
 
-        // 创建滚动面板包装历史列表和详细信息文本区域
-        JScrollPane historyScrollPane = new JScrollPane(historyList);
-        JScrollPane detailScrollPane = new JScrollPane(detailTextArea);
-
-        // 使用JSplitPane分割历史记录和详细内容的显示
-        JSplitPane historyDetailSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, historyScrollPane, detailScrollPane);
-        historyDetailSplitPane.setDividerLocation(300); // 根据需要调整分隔条位置
-
-
-        // 使用JSplitPane分割窗口
-        JSplitPane splitPaneRight = new JSplitPane(JSplitPane.VERTICAL_SPLIT, httpPanel, historyDetailSplitPane);
-        splitPaneRight.setDividerLocation(200); // Adjust divider
-        JSplitPane splitPaneCenter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, textScrollPane, splitPaneRight);
-        splitPaneCenter.setDividerLocation(300);
-        JSplitPane splitPaneLeft = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, splitPaneCenter);
-        splitPaneLeft.setDividerLocation(150);
-
-        getContentPane().add(splitPaneLeft, BorderLayout.CENTER);
-
-        // 创建菜单栏
-        JMenuBar menuBar = new JMenuBar();
-
-        // 创建文件菜单及其菜单项
-        JMenu fileMenu = new JMenu("文件");
-        JMenuItem newPromptItem = new JMenuItem("新建prompt");
-        JMenuItem exitItem = new JMenuItem("退出");
-
-        // 将菜单项添加到文件菜单
-        fileMenu.add(newPromptItem);
-        fileMenu.addSeparator(); // 添加分隔线
-        fileMenu.add(exitItem);
-
-        // 创建设置菜单
-        JMenu settingsMenu = new JMenu("设置");
-
-        // 将文件和设置菜单添加到菜单栏
-        menuBar.add(fileMenu);
-        menuBar.add(settingsMenu);
-
-        // 为新建prompt菜单项添加事件处理器（根据需要实现）
-        newPromptItem.addActionListener(e -> {
-            String nodeName = JOptionPane.showInputDialog(null, "请输入节点名称:", "新建节点", JOptionPane.PLAIN_MESSAGE);
-            DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(nodeName); // 使用用户输入的名称创建新节点
-            treeModel.insertNodeInto(newNode, rootNode, rootNode.getChildCount()); // 将新节点添加到根节点下
-            tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+        // 实现删除操作
+        deleteItem.addActionListener(e -> {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+            if (selectedNode != null && selectedNode.getParent() != null) { // 确保选中的节点不是根节点
+                treeModel.removeNodeFromParent(selectedNode);
+            }
         });
 
-        // 为退出菜单项添加事件处理器
-        exitItem.addActionListener(e -> {
-            System.exit(0); // 关闭程序
+        // 实现重命名操作
+        renameItem.addActionListener(e -> {
+            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+            if (selectedNode != null) {
+                String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
+                if (newName != null && !newName.trim().isEmpty()) {
+                    selectedNode.setUserObject(newName);
+                    treeModel.nodeChanged(selectedNode);
+                }
+            }
         });
 
-// 将菜单栏设置到窗体（JFrame）中
-        getContentPane().add(menuBar, BorderLayout.NORTH);
+        return tree;
+    }
+
+    private TreeNode initialTreeNode() {
+        return backEndServer.getPromptTree();
     }
 
     private void sendHttpRequest(String content, String urlString, Object o, String temperature, JTextArea responseArea) {
