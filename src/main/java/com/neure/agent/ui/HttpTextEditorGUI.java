@@ -123,6 +123,11 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 创建设置菜单
         JMenu settingsMenu = new JMenu("设置");
+        JMenuItem projectIdItem = new JMenuItem("projectId");
+        JMenuItem hostUrlItem = new JMenuItem("主机");
+        settingsMenu.add(projectIdItem);
+        settingsMenu.add(hostUrlItem);
+
 
         // 将文件和设置菜单添加到菜单栏
         menuBar.add(fileMenu);
@@ -134,6 +139,12 @@ public class HttpTextEditorGUI extends JFrame {
             DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(nodeName); // 使用用户输入的名称创建新节点
             treeModel.insertNodeInto(newNode, rootData, rootData.getChildCount()); // 将新节点添加到根节点下
             tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+        });
+
+        projectIdItem.addActionListener(e -> {
+            String projectId = JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE);
+            setting.setProjectId(projectId);
+
         });
 
         // 为退出菜单项添加事件处理器

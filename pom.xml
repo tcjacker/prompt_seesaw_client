@@ -26,6 +26,11 @@
         </repository>
     </repositories>
     <dependencies>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>1.29</version> <!-- 检查最新版本 -->
+        </dependency>
         <!-- Unit Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

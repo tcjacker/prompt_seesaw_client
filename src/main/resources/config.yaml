@@ -1,0 +1,6 @@
+host:
+  url: http://3.112.254.37:10000/
+
+token:
+project:
+  id: 1

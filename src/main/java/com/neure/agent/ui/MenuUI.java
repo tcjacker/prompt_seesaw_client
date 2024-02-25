@@ -13,8 +13,6 @@ public class MenuUI {
 
     public static final MenuUI INSTANCE = new MenuUI();
 
-
-
     public static MenuUI getInstance(){
         return Objects.requireNonNullElseGet(INSTANCE, MenuUI::new);
     }
