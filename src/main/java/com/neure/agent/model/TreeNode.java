@@ -21,6 +21,7 @@ public class TreeNode extends DefaultMutableTreeNode {
     public TreeNode(){}
     // 构造函数
     public TreeNode(String name, String type) {
+        super(name);
         this.name = name;
         this.type = type;
     }

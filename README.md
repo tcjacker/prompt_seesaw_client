@@ -5,3 +5,5 @@
 mvn clean install
 
 基于Java swing开发
+运行命令：
+java -jar prompt-seesaw-client-1.0.0-SNAPSHOT.jar 
