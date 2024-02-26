@@ -1,6 +1,8 @@
 package com.neure.agent.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Date;
 
 /**
@@ -9,6 +11,7 @@ import java.util.Date;
  * @author tc
  * @date 2024-02-25 16:18
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LLMRequestLog {
 
     public Integer id = 0;

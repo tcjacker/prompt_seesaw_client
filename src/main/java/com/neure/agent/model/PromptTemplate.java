@@ -1,11 +1,15 @@
 package com.neure.agent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * PromptTemplate
  *
  * @author tc
  * @date 2024-02-25 15:45
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PromptTemplate {
 
     private int id;
@@ -16,6 +20,7 @@ public class PromptTemplate {
     private String status;
     private String type;
     private String mode;
+    @JsonProperty("project_id")
     private int projectId;
 
     public int getId() {

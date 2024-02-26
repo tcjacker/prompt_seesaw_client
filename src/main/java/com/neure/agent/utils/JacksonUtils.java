@@ -5,10 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.neure.agent.model.DefaultResponse;
@@ -103,12 +100,13 @@ public class JacksonUtils {
     }
 
     public static <T> DefaultResponse<T> StrToResponse(String jsonString,Class<T> classType) throws JsonProcessingException {
-        return objectMapper.readValue(jsonString,new TypeReference<DefaultResponse<T>>() {
-        });
+        ObjectMapper objectMapper = new ObjectMapper();
+        JavaType javaType = objectMapper.getTypeFactory().constructParametricType(DefaultResponse.class, classType);
+        return objectMapper.readValue(jsonString, javaType);
     }
 
 
-    public static <T> List<T> StrToObjectList(String jsonString, Class<T> classType) throws JsonProcessingException {
+    public static <T> List<T> StrToObjectList(String jsonString) throws JsonProcessingException {
 
         return objectMapper.readValue(jsonString, new TypeReference<List<T>>() {
         });
