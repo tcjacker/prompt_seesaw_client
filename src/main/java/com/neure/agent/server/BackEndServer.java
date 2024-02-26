@@ -54,30 +54,14 @@ public class BackEndServer {
 
     public Project queryProject(int id) {
         String requestUrl = session.url + "project/get/" + id;
-        String responseStr = HttpRequestClient.sendGet(requestUrl);
-        log.info(responseStr);
-        DefaultResponse<Project> response = analysisResponse(responseStr);
+        DefaultResponse<Project> response = HttpRequestClient.sendGet(requestUrl);
         if (response.isSuccess()){
             return response.getBody();
         }
         return null;
     }
 
-    @NotNull
-    private <T>  DefaultResponse<T> analysisResponse(String responseStr) {
-        try {
-            DefaultResponse<T> defaultResponse = JacksonUtils.StrToObject(responseStr, new TypeReference<DefaultResponse<T>>() {
-            });
-            if (defaultResponse.getCode() != 200) {
-                log.error(defaultResponse.getMessage());
-                return DefaultResponse.Error();
-            }
-            return defaultResponse;
-        } catch (JsonProcessingException e) {
-            log.error("response is [ " + responseStr + " ] err:" + e.getMessage());
-            return DefaultResponse.Error();
-        }
-    }
+
 
     /**
      * 只支持全量更新
@@ -103,8 +87,7 @@ public class BackEndServer {
         promptTemplate.setName(node.getName());
         promptTemplate.setProjectId(session.projectId);
         String requestUrl = session.url + "prompt_template/create";
-        String responseStr = HttpRequestClient.sendPost(requestUrl,promptTemplate);
-        DefaultResponse<Integer> response = analysisResponse(responseStr);
+        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate);
         if (response.isSuccess()){
             int id = response.getBody();
             if (id == -1){
@@ -121,8 +104,7 @@ public class BackEndServer {
         promptTemplate.setName(node.getName());
         promptTemplate.setProjectId(session.projectId);
         String requestUrl = session.url + "prompt_section/create";
-        String responseStr = HttpRequestClient.sendPost(requestUrl,promptTemplate);
-        DefaultResponse<Integer> response = analysisResponse(responseStr);
+        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate);
         if (response.isSuccess()){
             int id = response.getBody();
             if (id == -1){

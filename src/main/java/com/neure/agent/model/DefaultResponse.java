@@ -15,17 +15,18 @@ public class DefaultResponse<T> {
     private T body;
     private int size;
 
-    public static String buildError() {
-        DefaultResponse r = new DefaultResponse();
-        r.code = 500;
-        r.message = "http请求出错";
-        return JacksonUtils.ObjectToJsonStr(r);
-    }
 
     public static DefaultResponse Error() {
         DefaultResponse r = new DefaultResponse();
         r.code = 500;
         r.message = "http请求出错";
+        return r;
+    }
+
+    public static <T> DefaultResponse<T> buildError(String message) {
+        DefaultResponse r = new DefaultResponse();
+        r.code = 500;
+        r.message = message;
         return r;
     }
 
