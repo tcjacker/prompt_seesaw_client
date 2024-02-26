@@ -54,7 +54,7 @@ public class BackEndServer {
 
     public Project queryProject(int id) {
         String requestUrl = session.url + "project/get/" + id;
-        DefaultResponse<Project> response = HttpRequestClient.sendGet(requestUrl);
+        DefaultResponse<Project> response = HttpRequestClient.sendGet(requestUrl,Project.class);
         if (response.isSuccess()){
             return response.getBody();
         }
@@ -87,7 +87,7 @@ public class BackEndServer {
         promptTemplate.setName(node.getName());
         promptTemplate.setProjectId(session.projectId);
         String requestUrl = session.url + "prompt_template/create";
-        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate);
+        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate,Integer.class);
         if (response.isSuccess()){
             int id = response.getBody();
             if (id == -1){
@@ -104,7 +104,7 @@ public class BackEndServer {
         promptTemplate.setName(node.getName());
         promptTemplate.setProjectId(session.projectId);
         String requestUrl = session.url + "prompt_section/create";
-        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate);
+        DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate,Integer.class);
         if (response.isSuccess()){
             int id = response.getBody();
             if (id == -1){

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.neure.agent.model.DefaultResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.text.SimpleDateFormat;
@@ -99,6 +100,11 @@ public class JacksonUtils {
 
     public static <T> T StrToObject(String jsonString,TypeReference<T> valueTypeRef) throws JsonProcessingException {
         return objectMapper.readValue(jsonString,valueTypeRef);
+    }
+
+    public static <T> DefaultResponse<T> StrToResponse(String jsonString,Class<T> classType) throws JsonProcessingException {
+        return objectMapper.readValue(jsonString,new TypeReference<DefaultResponse<T>>() {
+        });
     }
 
 
