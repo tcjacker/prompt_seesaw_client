@@ -22,6 +22,17 @@ public class DefaultResponse<T> {
         return JacksonUtils.ObjectToJsonStr(r);
     }
 
+    public static DefaultResponse Error() {
+        DefaultResponse r = new DefaultResponse();
+        r.code = 500;
+        r.message = "http请求出错";
+        return r;
+    }
+
+    public  boolean isSuccess() {
+        return this.code == 200;
+    }
+
     public int getCode() {
         return code;
     }

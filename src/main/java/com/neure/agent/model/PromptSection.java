@@ -1,21 +1,19 @@
 package com.neure.agent.model;
 
 /**
- * PromptTemplate
+ * PromptSection
  *
  * @author tc
- * @date 2024-02-25 15:45
+ * @date 2024-02-26 23:34
  */
-public class PromptTemplate {
+public class PromptSection {
 
     private int id;
     private String name;
     private String description;
     private String content;
-    private String history;
     private String status;
     private String type;
-    private String mode;
     private int projectId;
 
     public int getId() {
@@ -50,14 +48,6 @@ public class PromptTemplate {
         this.content = content;
     }
 
-    public String getHistory() {
-        return history;
-    }
-
-    public void setHistory(String history) {
-        this.history = history;
-    }
-
     public String getStatus() {
         return status;
     }
@@ -72,14 +62,6 @@ public class PromptTemplate {
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    public String getMode() {
-        return mode;
-    }
-
-    public void setMode(String mode) {
-        this.mode = mode;
     }
 
     public int getProjectId() {

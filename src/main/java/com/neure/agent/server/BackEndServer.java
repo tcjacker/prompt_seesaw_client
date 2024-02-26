@@ -7,6 +7,8 @@ import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
 import com.neure.agent.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -54,17 +56,26 @@ public class BackEndServer {
         String requestUrl = session.url + "project/get/" + id;
         String responseStr = HttpRequestClient.sendGet(requestUrl);
         log.info(responseStr);
+        DefaultResponse<Project> response = analysisResponse(responseStr);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        return null;
+    }
+
+    @NotNull
+    private <T>  DefaultResponse<T> analysisResponse(String responseStr) {
         try {
-            DefaultResponse<Project> defaultResponse = JacksonUtils.StrToObject(responseStr, new TypeReference<DefaultResponse<Project>>() {
+            DefaultResponse<T> defaultResponse = JacksonUtils.StrToObject(responseStr, new TypeReference<DefaultResponse<T>>() {
             });
             if (defaultResponse.getCode() != 200) {
                 log.error(defaultResponse.getMessage());
-                return null;
+                return DefaultResponse.Error();
             }
-            return defaultResponse.getBody();
+            return defaultResponse;
         } catch (JsonProcessingException e) {
             log.error("response is [ " + responseStr + " ] err:" + e.getMessage());
-            return null;
+            return DefaultResponse.Error();
         }
     }
 
@@ -87,11 +98,47 @@ public class BackEndServer {
     }
 
 
-    public boolean addTreeNode(TreeNode node) {
+    public boolean addPromptTreeNode(TreeNode node) {
+        PromptTemplate promptTemplate = new PromptTemplate();
+        promptTemplate.setName(node.getName());
+        promptTemplate.setProjectId(session.projectId);
+        String requestUrl = session.url + "prompt_template/create";
+        String responseStr = HttpRequestClient.sendPost(requestUrl,promptTemplate);
+        DefaultResponse<Integer> response = analysisResponse(responseStr);
+        if (response.isSuccess()){
+            int id = response.getBody();
+            if (id == -1){
+                return false;
+            }
+            node.setId(id);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean addSectionTreeNode(TreeNode node) {
+        PromptTemplate promptTemplate = new PromptTemplate();
+        promptTemplate.setName(node.getName());
+        promptTemplate.setProjectId(session.projectId);
+        String requestUrl = session.url + "prompt_section/create";
+        String responseStr = HttpRequestClient.sendPost(requestUrl,promptTemplate);
+        DefaultResponse<Integer> response = analysisResponse(responseStr);
+        if (response.isSuccess()){
+            int id = response.getBody();
+            if (id == -1){
+                return false;
+            }
+            node.setId(id);
+            return true;
+        }
         return false;
     }
 
     public PromptTemplate getPrompt(Integer id) {
+        return null;
+    }
+
+    public PromptSection getSection(Integer id) {
         return null;
     }
 
