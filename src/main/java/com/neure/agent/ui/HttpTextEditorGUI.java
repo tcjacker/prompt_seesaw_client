@@ -275,6 +275,9 @@ public class HttpTextEditorGUI extends JFrame {
         tree = new JTree(treeModel);
         JMenuItem deleteItem = new JMenuItem("删除");
         JMenuItem renameItem = new JMenuItem("重命名");
+        // 添加一个新的菜单项
+        JMenuItem addItem = new JMenuItem("添加子节点");
+        popupMenu.add(addItem);
         popupMenu.add(deleteItem);
         popupMenu.add(renameItem);
 
@@ -309,6 +312,37 @@ public class HttpTextEditorGUI extends JFrame {
             }
         });
 
+
+
+    // 为新增子节点菜单项添加动作监听器
+        addItem.addActionListener(e -> {
+            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
+            if (selectedNode != null) {
+                // 创建下拉列表让用户选择节点类型
+                JComboBox<String> typeComboBox = new JComboBox<>(new String[]{"文件夹", "Prompt"});
+                JTextField nameTextField = new JTextField();
+                final JComponent[] inputs = new JComponent[] {
+                        new JLabel("选择类型"),
+                        typeComboBox,
+                        new JLabel("名称"),
+                        nameTextField
+                };
+                int result = JOptionPane.showConfirmDialog(null, inputs, "新增子节点", JOptionPane.PLAIN_MESSAGE);
+                if (result == JOptionPane.OK_OPTION) {
+                    String type = (String) typeComboBox.getSelectedItem();
+                    String name = nameTextField.getText();
+                    if (name != null && !name.trim().isEmpty()) {
+                        // 根据选择创建新的节点
+                        TreeNode childNode = new TreeNode(name,type);
+                        selectedNode.addChild(childNode);
+                        // 通知模型节点已经发生变化，以刷新显示
+                        treeModel.nodesWereInserted(selectedNode, new int[]{selectedNode.getIndex(childNode)});
+                    }
+                }
+            }
+        });
+
+
         return tree;
     }
 
@@ -335,6 +369,8 @@ public class HttpTextEditorGUI extends JFrame {
             responseArea.setText("Error: " + ex.getMessage());
         }
     }
+
+
 
     private void publish(String urlString, JTextArea responseArea) {
 

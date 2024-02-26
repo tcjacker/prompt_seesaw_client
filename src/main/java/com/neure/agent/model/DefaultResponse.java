@@ -8,7 +8,7 @@ import com.neure.agent.utils.JacksonUtils;
  * @author tc
  * @date 2024-02-26 00:48
  */
-public class Response<T> {
+public class DefaultResponse<T> {
 
     private int code;
     private String message;
@@ -16,7 +16,7 @@ public class Response<T> {
     private int size;
 
     public static String buildError() {
-        Response r = new Response();
+        DefaultResponse r = new DefaultResponse();
         r.code = 500;
         r.message = "http请求出错";
         return JacksonUtils.ObjectToJsonStr(r);

@@ -39,6 +39,10 @@ public class TreeNode extends DefaultMutableTreeNode {
         super.add(child);
     }
 
+    public void add(TreeNode child) {
+        addChild(child);
+    }
+
     // Getters
     public String getName() {
         return name;
