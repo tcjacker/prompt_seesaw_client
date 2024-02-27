@@ -91,6 +91,7 @@ public class BackEndServer {
         PromptTemplate promptTemplate = new PromptTemplate();
         promptTemplate.setName(node.getName());
         promptTemplate.setProjectId(session.projectId);
+        promptTemplate.setContent(" ");
         String requestUrl = session.url + "prompt_template/create";
         DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate,Integer.class);
         if (response.isSuccess()){
@@ -105,9 +106,10 @@ public class BackEndServer {
     }
 
     public boolean addSectionTreeNode(TreeNode node) {
-        PromptTemplate promptTemplate = new PromptTemplate();
-        promptTemplate.setName(node.getName());
-        promptTemplate.setProjectId(session.projectId);
+        PromptSection promptSection = new PromptSection();
+        promptSection.setName(node.getName());
+        promptSection.setProjectId(session.projectId);
+        promptSection.setContent(" ");
         String requestUrl = session.url + "prompt_section/create";
         DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl,promptTemplate,Integer.class);
         if (response.isSuccess()){
