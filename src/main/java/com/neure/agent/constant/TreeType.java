@@ -12,6 +12,8 @@ public enum TreeType {
 
     ROOT("root"),
     FOLDER("folder"),
+    PROMPT_FOLDER("prompt_folder"),
+    SECTION_FOLDER("section_folder"),
     PROMPT("prompt"),
     SECTION("section");
     private String type = "";
@@ -23,7 +25,7 @@ public enum TreeType {
         return type;
     }
 
-    public TreeType get(String type){
+    public static TreeType get(String type){
         return Arrays.stream(TreeType.values()).filter(i->i.type().equals(type))
                 .findFirst().orElseThrow(IllegalArgumentException::new);
     }

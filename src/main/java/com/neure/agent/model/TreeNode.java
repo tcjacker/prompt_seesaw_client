@@ -1,6 +1,8 @@
 package com.neure.agent.model;
 
 
+import com.neure.agent.constant.TreeType;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,15 +19,27 @@ public class TreeNode extends DefaultMutableTreeNode {
     private String name = "";
     private String type = "";
 
+    private String baseType = "";
+
     private String status = "";
     private List<TreeNode> children = new ArrayList<>();
 
-    public TreeNode(){}
+    public TreeNode() {
+    }
+
     // 构造函数
-    public TreeNode(String name, String type) {
+    public TreeNode(String name, String type, String baseType) {
         super(name);
         this.name = name;
         this.type = type;
+        if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(type) || TreeType.PROMPT.type().equalsIgnoreCase(type)) {
+            this.baseType = TreeType.PROMPT.type();
+        } else if (TreeType.SECTION_FOLDER.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
+            this.baseType = TreeType.SECTION.type();
+        } else if (TreeType.FOLDER.type().equalsIgnoreCase(type)) {
+            this.baseType = baseType;
+        }
+
     }
 
     public TreeNode(String name) {
@@ -37,6 +51,7 @@ public class TreeNode extends DefaultMutableTreeNode {
     public void addChild(TreeNode child) {
         children.add(child);
         super.add(child);
+
     }
 
     public void add(TreeNode child) {
@@ -68,6 +83,10 @@ public class TreeNode extends DefaultMutableTreeNode {
         this.type = type;
     }
 
+    public void setBaseType(String type) {
+        this.baseType = type;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -78,5 +97,13 @@ public class TreeNode extends DefaultMutableTreeNode {
 
     public void setChildren(List<TreeNode> children) {
         this.children = children;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getBaseType() {
+        return baseType;
     }
 }

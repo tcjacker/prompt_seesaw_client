@@ -1,5 +1,6 @@
 package com.neure.agent.ui;
 
+import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.Setting;
 import com.neure.agent.model.TreeNode;
 import com.neure.agent.server.BackEndServer;
@@ -16,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.stream.Stream;
 
 /**
  * HttpTextEditorGUI
@@ -90,7 +92,7 @@ public class HttpTextEditorGUI extends JFrame {
     }
 
 
-    public void reDraw(){
+    public void reDraw() {
         this.session.setProjectId(setting.getProjectId());
         this.session.setToken(setting.getToken());
         this.session.setUrl(setting.getUrl());
@@ -169,9 +171,9 @@ public class HttpTextEditorGUI extends JFrame {
 
         projectIdItem.addActionListener(e -> {
             boolean isValidInput = false;
-            while (!isValidInput){
-                String  input = (String) JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE,null, null, String.valueOf(setting.getProjectId()));
-                if (input != null)  {
+            while (!isValidInput) {
+                String input = (String) JOptionPane.showInputDialog(null, "请输入项目ID:", "项目ID", JOptionPane.PLAIN_MESSAGE, null, null, String.valueOf(setting.getProjectId()));
+                if (input != null) {
                     try {
                         int projectId = Integer.parseInt(input);
                         // 如果转换成功，说明是有效的int类型，可以退出循环
@@ -182,7 +184,7 @@ public class HttpTextEditorGUI extends JFrame {
                         // 输入的不是int类型，显示错误消息，并让循环继续
                         JOptionPane.showMessageDialog(null, "输入的项目ID不是有效的整数，请重新输入！", "错误", JOptionPane.ERROR_MESSAGE);
                     }
-                }else {
+                } else {
                     break;
                 }
 
@@ -191,10 +193,10 @@ public class HttpTextEditorGUI extends JFrame {
         });
 
         hostUrlItem.addActionListener(e -> {
-            String url = (String) JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE,null,null,session.getUrl());
-            if (url != null && url.startsWith("http://")){
+            String url = (String) JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE, null, null, session.getUrl());
+            if (url != null && url.startsWith("http://")) {
                 setting.setUrl(url);
-            }else {
+            } else {
                 JOptionPane.showMessageDialog(null, "输入的host地址必须以http://开头", "错误", JOptionPane.ERROR_MESSAGE);
             }
 
@@ -277,7 +279,6 @@ public class HttpTextEditorGUI extends JFrame {
         JMenuItem renameItem = new JMenuItem("重命名");
         // 添加一个新的菜单项
         JMenuItem addItem = new JMenuItem("添加子节点");
-        popupMenu.add(addItem);
         popupMenu.add(deleteItem);
         popupMenu.add(renameItem);
 
@@ -286,8 +287,21 @@ public class HttpTextEditorGUI extends JFrame {
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-                    tree.setSelectionRow(row); // 选择鼠标右击的行
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY()); // 在鼠标位置显示弹出菜单
+                    tree.setSelectionRow(row);
+                    TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+                    if (path != null) {
+                        TreeNode selectedNode = (TreeNode) path.getLastPathComponent();
+                        // 检查节点是否是folder类型
+                        // 这里的条件根据实际情况来判断节点是否是“folder”类型
+                        if (isAllowed(selectedNode)) {
+                            // 如果是folder类型，显示“添加子节点”菜单项
+                            popupMenu.add(addItem);
+                        } else {
+                            // 如果不是，移除该菜单项确保它不显示
+                            popupMenu.remove(addItem);
+                        }
+                        popupMenu.show(tree, e.getX(), e.getY());
+                    }
                 }
             }
         });
@@ -313,15 +327,16 @@ public class HttpTextEditorGUI extends JFrame {
         });
 
 
-
-    // 为新增子节点菜单项添加动作监听器
+        // 为新增子节点菜单项添加动作监听器
         addItem.addActionListener(e -> {
             TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 // 创建下拉列表让用户选择节点类型
-                JComboBox<String> typeComboBox = new JComboBox<>(new String[]{"文件夹", "Prompt"});
+                String parentType = selectedNode.getType();
+                String[] types = new String[]{TreeType.FOLDER.type(), selectedNode.getBaseType()};
+                JComboBox<String> typeComboBox = new JComboBox<>(types);
                 JTextField nameTextField = new JTextField();
-                final JComponent[] inputs = new JComponent[] {
+                final JComponent[] inputs = new JComponent[]{
                         new JLabel("选择类型"),
                         typeComboBox,
                         new JLabel("名称"),
@@ -331,9 +346,19 @@ public class HttpTextEditorGUI extends JFrame {
                 if (result == JOptionPane.OK_OPTION) {
                     String type = (String) typeComboBox.getSelectedItem();
                     String name = nameTextField.getText();
+                   if (selectedNode.getChildren().stream().anyMatch(c->c.getName().equalsIgnoreCase(name))){
+                       JOptionPane.showMessageDialog(null, "同一节点下不能有相同名字", "错误", JOptionPane.ERROR_MESSAGE);
+                   }
                     if (name != null && !name.trim().isEmpty()) {
                         // 根据选择创建新的节点
-                        TreeNode childNode = new TreeNode(name,type);
+                        TreeNode childNode = new TreeNode(name, type,selectedNode.getBaseType());
+                        if (TreeType.PROMPT.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
+                            boolean isSuccess = backEndServer.addNode(childNode, type);
+                            if (!isSuccess){
+                                JOptionPane.showMessageDialog(null, "创建节点失败", "错误", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+                        }
                         selectedNode.addChild(childNode);
                         // 通知模型节点已经发生变化，以刷新显示
                         treeModel.nodesWereInserted(selectedNode, new int[]{selectedNode.getIndex(childNode)});
@@ -346,6 +371,11 @@ public class HttpTextEditorGUI extends JFrame {
         return tree;
     }
 
+    private boolean isAllowed(TreeNode selectedNode) {
+        return Stream.of(TreeType.PROMPT_FOLDER.type(), TreeType.SECTION_FOLDER.type()
+                , TreeType.FOLDER.type()).anyMatch(i -> i.equalsIgnoreCase(selectedNode.getType()));
+    }
+
     private TreeNode initialTreeNode() {
         return backEndServer.getPromptTree();
     }
@@ -355,7 +385,6 @@ public class HttpTextEditorGUI extends JFrame {
             URL url = new URL(urlString);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String inputLine;
             StringBuilder response = new StringBuilder();
@@ -363,13 +392,11 @@ public class HttpTextEditorGUI extends JFrame {
                 response.append(inputLine).append("\n");
             }
             in.close();
-
             responseArea.setText(response.toString());
         } catch (Exception ex) {
             responseArea.setText("Error: " + ex.getMessage());
         }
     }
-
 
 
     private void publish(String urlString, JTextArea responseArea) {

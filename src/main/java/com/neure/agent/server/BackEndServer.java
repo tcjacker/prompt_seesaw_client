@@ -39,14 +39,20 @@ public class BackEndServer {
         if (project == null) {
             return initialTree();
         }
-        TreeNode rootData = new TreeNode(project.getName(), TreeType.ROOT.type());
+        TreeNode rootData = new TreeNode(project.getName(), TreeType.ROOT.type(),TreeType.ROOT.type());
+        TreeNode section = new TreeNode("Section", TreeType.SECTION_FOLDER.type(),TreeType.SECTION.type());
+        TreeNode prompt = new TreeNode("Prompt", TreeType.PROMPT_FOLDER.type(),TreeType.PROMPT.type());
+        rootData.add(section);
+        rootData.add(prompt);
+        session.setSectionTree(section);
+        session.setPromptTree(prompt);
         return rootData;
     }
 
     private TreeNode initialTree() {
-        TreeNode root = new TreeNode("空", TreeType.ROOT.type());
-        TreeNode section = new TreeNode("Section", TreeType.FOLDER.type());
-        TreeNode prompt = new TreeNode("Prompt", TreeType.FOLDER.type());
+        TreeNode root = new TreeNode("空", TreeType.ROOT.type(),TreeType.ROOT.type());
+        TreeNode section = new TreeNode("Section", TreeType.SECTION_FOLDER.type(),TreeType.SECTION.type());
+        TreeNode prompt = new TreeNode("Prompt", TreeType.PROMPT_FOLDER.type(),TreeType.PROMPT.type());
         root.add(section);
         root.add(prompt);
         return root;
@@ -68,15 +74,19 @@ public class BackEndServer {
      *
      * @param treeNode
      */
-    public void updateProjectTree(TreeNode treeNode, TreeType type) {
+    public void updateProjectTree(TreeNode treeNode,String type) {
         if (treeNode == null || treeNode.getChildren() == null
                 || treeNode.getChildren().size() <= 0
                 || TreeType.ROOT.type().equalsIgnoreCase(treeNode.getType())) {
             return;
         }
-        List<TreeNode> child = treeNode.getChildren();
-        TreeNode updateNode = child.stream().filter(i -> type.type().equalsIgnoreCase(i.getType())).findFirst().orElseThrow(IllegalArgumentException::new);
-
+        if (TreeType.SECTION.type().equalsIgnoreCase(type)){
+            TreeNode sectionTree = session.getSectionTree();
+            //TODO:更新section
+        }else if (TreeType.PROMPT.type().equalsIgnoreCase(type)){
+            TreeNode pompt = session.getPromptTree();
+            //TODO:更新prompt
+        }
 
 
     }
@@ -134,5 +144,13 @@ public class BackEndServer {
 
     public List<LLMRequestLog> history(Integer id) {
         return null;
+    }
+
+    public boolean addNode(TreeNode childNode, String type) {
+        return switch (TreeType.get(type)) {
+            case SECTION -> addSectionTreeNode(childNode);
+            case PROMPT -> addPromptTreeNode(childNode);
+            default -> false;
+        };
     }
 }
