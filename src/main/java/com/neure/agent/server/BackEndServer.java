@@ -41,8 +41,8 @@ public class BackEndServer {
             return initialTree();
         }
         TreeNode rootData = new TreeNode(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
-        TreeNode section = new TreeNode("Section", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
-        TreeNode prompt = new TreeNode("Prompt", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
+        TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
+        TreeNode prompt = new TreeNode("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
         String url = session.getUrl() + "project/tree/get/"+ session.projectId;
         DefaultResponse<ProjectEnumTree> projectEnumTree = HttpRequestClient.sendGet(url,ProjectEnumTree.class);
         if (projectEnumTree.isSuccess() && projectEnumTree.getBody() != null){
@@ -72,8 +72,8 @@ public class BackEndServer {
 
     private TreeNode initialTree() {
         TreeNode root = new TreeNode("空", TreeType.ROOT.type(), TreeType.ROOT.type());
-        TreeNode section = new TreeNode("Section", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
-        TreeNode prompt = new TreeNode("Prompt", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
+        TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
+        TreeNode prompt = new TreeNode("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
         root.add(section);
         root.add(prompt);
         return root;
