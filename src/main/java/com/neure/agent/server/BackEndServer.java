@@ -1,14 +1,9 @@
 package com.neure.agent.server;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.client.HttpRequestClient;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
-import com.neure.agent.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,7 +33,7 @@ public class BackEndServer {
         int projectId = session.projectId;
         Project project = queryProject(projectId);
         if (project == null) {
-            return initialTree();
+            return null;
         }
         TreeNode rootData = new TreeNode(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
         TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
@@ -70,14 +65,14 @@ public class BackEndServer {
         return node;
     }
 
-    private TreeNode initialTree() {
-        TreeNode root = new TreeNode("空", TreeType.ROOT.type(), TreeType.ROOT.type());
-        TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
-        TreeNode prompt = new TreeNode("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
-        root.add(section);
-        root.add(prompt);
-        return root;
-    }
+//    private TreeNode initialProject() {
+//        TreeNode root = new TreeNode("空", TreeType.ROOT.type(), TreeType.ROOT.type());
+//        TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
+//        TreeNode prompt = new TreeNode("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
+//        root.add(section);
+//        root.add(prompt);
+//        return root;
+//    }
 
     public Project queryProject(int id) {
         String requestUrl = session.url + "project/get/" + id;

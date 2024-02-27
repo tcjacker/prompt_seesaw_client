@@ -98,6 +98,9 @@ public class HttpTextEditorGUI extends JFrame {
         this.session.setUrl(setting.getUrl());
 
         rootData = initialTreeNode();
+        if (rootData == null){
+            JOptionPane.showMessageDialog(null, "项目ID不存在！", "错误", JOptionPane.ERROR_MESSAGE);
+        }
         DefaultTreeModel newTreeModel = new DefaultTreeModel(rootData);
         tree.setModel(newTreeModel);
 
