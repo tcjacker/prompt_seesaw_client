@@ -332,7 +332,6 @@ public class HttpTextEditorGUI extends JFrame {
             TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 // 创建下拉列表让用户选择节点类型
-                String parentType = selectedNode.getType();
                 String[] types = new String[]{TreeType.FOLDER.type(), selectedNode.getBaseType()};
                 JComboBox<String> typeComboBox = new JComboBox<>(types);
                 JTextField nameTextField = new JTextField();
@@ -362,6 +361,8 @@ public class HttpTextEditorGUI extends JFrame {
                         selectedNode.addChild(childNode);
                         // 通知模型节点已经发生变化，以刷新显示
                         treeModel.nodesWereInserted(selectedNode, new int[]{selectedNode.getIndex(childNode)});
+                        // 更新数据库数据
+                        backEndServer.updateProjectTree(selectedNode.getBaseType());
                     }
                 }
             }

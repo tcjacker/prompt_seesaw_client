@@ -74,12 +74,7 @@ public class BackEndServer {
      *
      * @param treeNode
      */
-    public void updateProjectTree(TreeNode treeNode,String type) {
-        if (treeNode == null || treeNode.getChildren() == null
-                || treeNode.getChildren().size() <= 0
-                || TreeType.ROOT.type().equalsIgnoreCase(treeNode.getType())) {
-            return;
-        }
+    public void updateProjectTree(String type) {
         if (TreeType.SECTION.type().equalsIgnoreCase(type)){
             TreeNode sectionTree = session.getSectionTree();
             //TODO:更新section
