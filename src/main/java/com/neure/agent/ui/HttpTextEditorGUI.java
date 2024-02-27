@@ -332,7 +332,7 @@ public class HttpTextEditorGUI extends JFrame {
             TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 // 创建下拉列表让用户选择节点类型
-                String[] types = new String[]{TreeType.FOLDER.type(), selectedNode.getBaseType()};
+                String[] types = new String[]{selectedNode.getBaseType(),TreeType.FOLDER.type()};
                 JComboBox<String> typeComboBox = new JComboBox<>(types);
                 JTextField nameTextField = new JTextField();
                 final JComponent[] inputs = new JComponent[]{
@@ -345,8 +345,9 @@ public class HttpTextEditorGUI extends JFrame {
                 if (result == JOptionPane.OK_OPTION) {
                     String type = (String) typeComboBox.getSelectedItem();
                     String name = nameTextField.getText();
-                   if (selectedNode.getChildren().stream().anyMatch(c->c.getName().equalsIgnoreCase(name))){
-                       JOptionPane.showMessageDialog(null, "同一节点下不能有相同名字", "错误", JOptionPane.ERROR_MESSAGE);
+                   if (backEndServer.checkName(name,type)){
+                       JOptionPane.showMessageDialog(null, "有重复名称", "错误", JOptionPane.ERROR_MESSAGE);
+                       return;
                    }
                     if (name != null && !name.trim().isEmpty()) {
                         // 根据选择创建新的节点
@@ -362,7 +363,7 @@ public class HttpTextEditorGUI extends JFrame {
                         // 通知模型节点已经发生变化，以刷新显示
                         treeModel.nodesWereInserted(selectedNode, new int[]{selectedNode.getIndex(childNode)});
                         // 更新数据库数据
-                        backEndServer.updateProjectTree(selectedNode.getBaseType());
+                        backEndServer.updateProjectTree();
                     }
                 }
             }

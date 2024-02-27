@@ -30,6 +30,12 @@ public class DefaultResponse<T> {
         return r;
     }
 
+    public static DefaultResponse buildSuccess() {
+        DefaultResponse r = new DefaultResponse();
+        r.code = 200;
+        return r;
+    }
+
     public  boolean isSuccess() {
         return this.code == 200;
     }

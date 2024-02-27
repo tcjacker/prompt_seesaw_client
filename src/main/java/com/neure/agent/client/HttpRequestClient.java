@@ -62,7 +62,6 @@ public class HttpRequestClient {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
             RequestBody requestBody = RequestBody.create(JacksonUtils.ObjectToJsonStr(body), mediaType);
-
             Request request = new Request.Builder()
                     // 标识为 POST 请求
                     .post(requestBody)
@@ -180,7 +179,7 @@ public class HttpRequestClient {
         }
         try {
             if (response.body() == null) {
-                return DefaultResponse.Error();
+                return DefaultResponse.buildSuccess();
             }
             return JacksonUtils.StrToResponse(response.body().string(),  classType);
         } catch (IOException e) {
