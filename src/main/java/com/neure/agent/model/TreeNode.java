@@ -28,24 +28,60 @@ public class TreeNode extends DefaultMutableTreeNode {
     }
 
     // 构造函数
-    public TreeNode(String name, String type, String baseType) {
-        super(name);
-        this.name = name;
-        this.type = type;
+    public static TreeNode build(String name, String type, String baseType) {
+        TreeNode node = build(name, type);
         if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(type) || TreeType.PROMPT.type().equalsIgnoreCase(type)) {
-            this.baseType = TreeType.PROMPT.type();
+            node.baseType = TreeType.PROMPT.type();
         } else if (TreeType.SECTION_FOLDER.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
-            this.baseType = TreeType.SECTION.type();
+            node.baseType = TreeType.SECTION.type();
         } else if (TreeType.FOLDER.type().equalsIgnoreCase(type)) {
-            this.baseType = baseType;
+            node.baseType = baseType;
         }
-
+        return node;
     }
 
-    public TreeNode(String name) {
+    private TreeNode(String name) {
         super(name);
         this.name = name;
     }
+
+    public static TreeNode build(String name, String type) {
+        String n = buildName(name, type);
+        TreeNode node = new TreeNode(n);
+        node.type = type;
+        return node;
+
+    }
+
+    public static String buildName(String name, String type) {
+        if (name.contains(".")) {
+            throw new IllegalArgumentException();
+        }
+        return name + nameSuffix(type);
+    }
+
+    public static String nameSuffix(String type) {
+        if (type == null || type.equalsIgnoreCase("")) {
+            throw new IllegalArgumentException();
+        }
+        if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
+            return ".sec";
+        } else if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
+            return ".pmt";
+        } else {
+            return "";
+        }
+    }
+
+    public void setName(String name) {
+        if (this.name == null){
+            throw new IllegalArgumentException();
+        }
+        this.name = name;
+        this.userObject = name;
+    }
+
+
 
     // 添加子节点
     public void addChild(TreeNode child) {
@@ -96,12 +132,11 @@ public class TreeNode extends DefaultMutableTreeNode {
     }
 
     public void setChildren(List<TreeNode> children) {
-        this.children = children;
+        for (TreeNode t : children) {
+            add(t);
+        }
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
 
     public String getBaseType() {
         return baseType;

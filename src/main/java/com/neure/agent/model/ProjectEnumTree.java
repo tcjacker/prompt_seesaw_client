@@ -1,29 +1,43 @@
 package com.neure.agent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+
 /**
  * ProjectEnumTree
  *
  * @author tc
  * @date 2024-02-27 23:33
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProjectEnumTree {
-    EnumTree sections;
 
-    EnumTree templates;
+    @JsonProperty("id")
+    Integer id;
 
-    public EnumTree getSections() {
+    @JsonProperty("project_id")
+    String projectId;
+    @JsonProperty("section_tree")
+    List<EnumTree> sections;
+
+    @JsonProperty("template_tree")
+    List<EnumTree> templates;
+
+    public List<EnumTree> getSections() {
         return sections;
     }
 
-    public void setSections(EnumTree sections) {
+    public void setSections(List<EnumTree> sections) {
         this.sections = sections;
     }
 
-    public EnumTree getTemplates() {
+    public List<EnumTree> getTemplates() {
         return templates;
     }
 
-    public void setTemplates(EnumTree templates) {
+    public void setTemplates(List<EnumTree> templates) {
         this.templates = templates;
     }
 }

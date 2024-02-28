@@ -181,7 +181,8 @@ public class HttpRequestClient {
             if (response.body() == null) {
                 return DefaultResponse.buildSuccess();
             }
-            return JacksonUtils.StrToResponse(response.body().string(),  classType);
+            String jsonStr = response.body().string();
+            return JacksonUtils.StrToResponse(jsonStr,  classType);
         } catch (IOException e) {
             log.error(e.getMessage());
             return DefaultResponse.Error();

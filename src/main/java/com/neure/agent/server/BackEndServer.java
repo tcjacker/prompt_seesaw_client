@@ -24,9 +24,6 @@ public class BackEndServer {
         this.session = session;
     }
 
-    public TreeNode reNamePrompt(String nodeName) {
-        return new TreeNode(nodeName);
-    }
 
 
     public TreeNode getPromptTree() {
@@ -35,17 +32,24 @@ public class BackEndServer {
         if (project == null) {
             return null;
         }
-        TreeNode rootData = new TreeNode(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
-        TreeNode section = new TreeNode("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
-        TreeNode prompt = new TreeNode("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
+        TreeNode rootData = TreeNode.build(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
+        TreeNode section = TreeNode.build("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
+        TreeNode prompt = TreeNode.build("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
         String url = session.getUrl() + "project/tree/get/"+ session.projectId;
         DefaultResponse<ProjectEnumTree> projectEnumTree = HttpRequestClient.sendGet(url,ProjectEnumTree.class);
         if (projectEnumTree.isSuccess() && projectEnumTree.getBody() != null){
             ProjectEnumTree peTree = projectEnumTree.getBody();
-            EnumTree sectionE = peTree.getSections();
-            EnumTree promptE = peTree.getTemplates();
-            section = converter(sectionE);
-            prompt = converter(promptE);
+            List<EnumTree> sectionE = peTree.getSections();
+            List<EnumTree> promptE = peTree.getTemplates();
+            if (sectionE != null){
+                List<TreeNode> tmp_section = sectionE.stream().map(this::converter).toList();
+                section.setChildren(tmp_section);
+            }
+            if (promptE != null){
+                List<TreeNode> tmp_prompt = promptE.stream().map(this::converter).toList();
+                prompt.setChildren(tmp_prompt);
+            }
+
         }
 
         rootData.add(section);
@@ -56,9 +60,12 @@ public class BackEndServer {
     }
 
     private TreeNode converter(EnumTree e) {
-        TreeNode node = new TreeNode();
+        if (e == null ){
+            return null;
+        }
+        TreeNode node = TreeNode.build(e.getName(),e.getType());
         node.setId(e.getId());
-        node.setName(e.getName());
+
         node.setType(e.getType());
         List<TreeNode> child = e.getChildren().stream().map(this::converter).toList();
         node.setChildren(child);
@@ -93,8 +100,8 @@ public class BackEndServer {
         EnumTree sections = converter(sectionTree);
         EnumTree prompts = converter(promptTree);
         ProjectEnumTree projectEnumTree = new ProjectEnumTree();
-        projectEnumTree.setSections(sections);
-        projectEnumTree.setTemplates(prompts);
+        projectEnumTree.setSections(sections.getChildren());
+        projectEnumTree.setTemplates(prompts.getChildren());
         String url = session.getUrl() + "project/tree/update/" + session.projectId;
         DefaultResponse<Boolean> defaultResponse = HttpRequestClient.sendPut(url, projectEnumTree, Boolean.class);
         if (!defaultResponse.isSuccess()){
@@ -155,6 +162,8 @@ public class BackEndServer {
             url = session.getUrl() + "prompt_template/check_name/";
         } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
             url = session.getUrl() + "prompt_section/check_name/";
+        } else {
+            return true;
         }
         url = url + session.projectId + "/" + name;
         DefaultResponse<Boolean> response = HttpRequestClient.sendGet(url, Boolean.class);
@@ -187,5 +196,15 @@ public class BackEndServer {
             case PROMPT -> addPromptTreeNode(childNode);
             default -> false;
         };
+    }
+
+    public void createProject(String projectName) {
+    }
+
+    /**
+     * TODO： 根据类型更新section或者prompt
+     * @param selectedNode
+     */
+    public void update(TreeNode selectedNode) {
     }
 }

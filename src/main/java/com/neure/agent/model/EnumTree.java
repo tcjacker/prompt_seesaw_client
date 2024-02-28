@@ -1,5 +1,7 @@
 package com.neure.agent.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
  * @author tc
  * @date 2024-02-27 23:24
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class EnumTree {
     private Integer id = -1;
     private String name = "";

@@ -144,11 +144,11 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 创建文件菜单及其菜单项
         JMenu fileMenu = new JMenu("文件");
-        JMenuItem newPromptItem = new JMenuItem("新建prompt");
+        JMenuItem newProject = new JMenuItem("新建project");
         JMenuItem exitItem = new JMenuItem("退出");
 
         // 将菜单项添加到文件菜单
-        fileMenu.add(newPromptItem);
+        fileMenu.add(newProject);
         fileMenu.addSeparator(); // 添加分隔线
         fileMenu.add(exitItem);
 
@@ -164,12 +164,10 @@ public class HttpTextEditorGUI extends JFrame {
         menuBar.add(fileMenu);
         menuBar.add(settingsMenu);
 
-        // 为新建prompt菜单项添加事件处理器（根据需要实现）
-        newPromptItem.addActionListener(e -> {
-            String nodeName = JOptionPane.showInputDialog(null, "请输入节点名称:", "新建节点", JOptionPane.PLAIN_MESSAGE);
-            TreeNode newNode = backEndServer.reNamePrompt(nodeName); // 使用用户输入的名称创建新节点
-            treeModel.insertNodeInto(newNode, rootData, rootData.getChildCount()); // 将新节点添加到根节点下
-            tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+//        // 为新建prompt菜单项添加事件处理器（根据需要实现）
+        newProject.addActionListener(e -> {
+            String projectName = JOptionPane.showInputDialog(null, "请输入Project:", "新建Project", JOptionPane.PLAIN_MESSAGE);
+            backEndServer.createProject(projectName);
         });
 
         projectIdItem.addActionListener(e -> {
@@ -319,12 +317,24 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 实现重命名操作
         renameItem.addActionListener(e -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
                 if (newName != null && !newName.trim().isEmpty()) {
+                    if (!newName.endsWith(TreeNode.nameSuffix(selectedNode.getType()))){
+                        JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    boolean is = backEndServer.checkName(newName,selectedNode.getType());
+                    if(!is){
+                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    newName = TreeNode.buildName(newName,selectedNode.getType());
                     selectedNode.setUserObject(newName);
                     treeModel.nodeChanged(selectedNode);
+                    backEndServer.update(selectedNode);
+                    backEndServer.updateProjectTree();
                 }
             }
         });
@@ -348,13 +358,13 @@ public class HttpTextEditorGUI extends JFrame {
                 if (result == JOptionPane.OK_OPTION) {
                     String type = (String) typeComboBox.getSelectedItem();
                     String name = nameTextField.getText();
-                   if (backEndServer.checkName(name,type)){
+                   if (!backEndServer.checkName(name,type)){
                        JOptionPane.showMessageDialog(null, "有重复名称", "错误", JOptionPane.ERROR_MESSAGE);
                        return;
                    }
                     if (name != null && !name.trim().isEmpty()) {
                         // 根据选择创建新的节点
-                        TreeNode childNode = new TreeNode(name, type,selectedNode.getBaseType());
+                        TreeNode childNode = TreeNode.build(name, type,selectedNode.getBaseType());
                         if (TreeType.PROMPT.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
                             boolean isSuccess = backEndServer.addNode(childNode, type);
                             if (!isSuccess){
