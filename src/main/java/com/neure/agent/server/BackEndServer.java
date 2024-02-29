@@ -5,7 +5,10 @@ import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -25,7 +28,6 @@ public class BackEndServer {
     }
 
 
-
     public TreeNode getPromptTree() {
         int projectId = session.projectId;
         Project project = queryProject(projectId);
@@ -35,17 +37,17 @@ public class BackEndServer {
         TreeNode rootData = TreeNode.build(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
         TreeNode section = TreeNode.build("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
         TreeNode prompt = TreeNode.build("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
-        String url = session.getUrl() + "project/tree/get/"+ session.projectId;
-        DefaultResponse<ProjectEnumTree> projectEnumTree = HttpRequestClient.sendGet(url,ProjectEnumTree.class);
-        if (projectEnumTree.isSuccess() && projectEnumTree.getBody() != null){
+        String url = session.getUrl() + "project/tree/get/" + session.projectId;
+        DefaultResponse<ProjectEnumTree> projectEnumTree = HttpRequestClient.sendGet(url, ProjectEnumTree.class);
+        if (projectEnumTree.isSuccess() && projectEnumTree.getBody() != null) {
             ProjectEnumTree peTree = projectEnumTree.getBody();
             List<EnumTree> sectionE = peTree.getSections();
             List<EnumTree> promptE = peTree.getTemplates();
-            if (sectionE != null){
+            if (sectionE != null) {
                 List<TreeNode> tmp_section = sectionE.stream().map(this::converter).toList();
                 section.setChildren(tmp_section);
             }
-            if (promptE != null){
+            if (promptE != null) {
                 List<TreeNode> tmp_prompt = promptE.stream().map(this::converter).toList();
                 prompt.setChildren(tmp_prompt);
             }
@@ -60,15 +62,18 @@ public class BackEndServer {
     }
 
     private TreeNode converter(EnumTree e) {
-        if (e == null ){
+        if (e == null) {
             return null;
         }
-        TreeNode node = TreeNode.build(e.getName(),e.getType());
+        TreeNode node = TreeNode.build(e.getName(), e.getType());
         node.setId(e.getId());
-
         node.setType(e.getType());
-        List<TreeNode> child = e.getChildren().stream().map(this::converter).toList();
-        node.setChildren(child);
+        if (e.getChildren()!=null){
+            List<TreeNode> child = e.getChildren().stream().map(this::converter).toList();
+            node.setChildren(child);
+        }else {
+            node.setChildren(new ArrayList<>(0));
+        }
         return node;
     }
 
@@ -99,12 +104,12 @@ public class BackEndServer {
         TreeNode promptTree = session.getPromptTree();
         EnumTree sections = converter(sectionTree);
         EnumTree prompts = converter(promptTree);
-        ProjectEnumTree projectEnumTree = new ProjectEnumTree();
-        projectEnumTree.setSections(sections.getChildren());
-        projectEnumTree.setTemplates(prompts.getChildren());
+        Map<String,List<EnumTree>> projectEnumTree = new ConcurrentHashMap<>(2);
+        projectEnumTree.put("sections",sections.getChildren());
+        projectEnumTree.put("templates",prompts.getChildren());
         String url = session.getUrl() + "project/tree/update/" + session.projectId;
         DefaultResponse<Boolean> defaultResponse = HttpRequestClient.sendPut(url, projectEnumTree, Boolean.class);
-        if (!defaultResponse.isSuccess()){
+        if (!defaultResponse.isSuccess()) {
             log.error(defaultResponse.getMessage());
         }
     }
@@ -113,6 +118,7 @@ public class BackEndServer {
         EnumTree tree = new EnumTree();
         tree.setId(node.getId());
         tree.setName(node.getName());
+        tree.setType(node.getType());
         List<EnumTree> children = node.getChildren().stream().map(this::converter).collect(Collectors.toList());
         tree.setChildren(children);
         return tree;
@@ -203,8 +209,33 @@ public class BackEndServer {
 
     /**
      * TODO： 根据类型更新section或者prompt
-     * @param selectedNode
+     *
+     * @param name
+     * @param type
+     * @param id
      */
-    public void update(TreeNode selectedNode) {
+    public boolean updateName(String name, String type, Integer id) {
+        String url = "";
+        if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
+            url = session.getUrl() + "prompt_section/update/" + id;
+        } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
+            url = session.getUrl() + "prompt_template/update/" + id;
+        } else {
+            return true;
+        }
+        Map<String, String> map = new ConcurrentHashMap<>();
+        map.put("name", name);
+        DefaultResponse<Boolean> response = HttpRequestClient.sendPut(url, map, Boolean.class);
+        if (response.isSuccess() && response.getBody()) {
+            log.info("success update TreeNode name : {}", name);
+            return true;
+        } else {
+            log.warn("Failed update TreeNode name : {}", name);
+            return false;
+        }
+    }
+
+    public void remove(TreeNode selectedNode) {
+        //TODO:delete
     }
 }

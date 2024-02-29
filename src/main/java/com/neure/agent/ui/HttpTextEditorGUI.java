@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
 /**
@@ -280,8 +281,8 @@ public class HttpTextEditorGUI extends JFrame {
         JMenuItem renameItem = new JMenuItem("重命名");
         // 添加一个新的菜单项
         JMenuItem addItem = new JMenuItem("添加子节点");
-        popupMenu.add(deleteItem);
-        popupMenu.add(renameItem);
+
+
 
         // 为JTree添加鼠标监听器以显示弹出菜单
         tree.addMouseListener(new MouseAdapter() {
@@ -292,8 +293,9 @@ public class HttpTextEditorGUI extends JFrame {
                     TreePath path = tree.getPathForLocation(e.getX(), e.getY());
                     if (path != null) {
                         TreeNode selectedNode = (TreeNode) path.getLastPathComponent();
-                        // 检查节点是否是folder类型
-                        // 这里的条件根据实际情况来判断节点是否是“folder”类型
+                        if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
+                            return;
+                        }
                         if (isAllowed(selectedNode)) {
                             // 如果是folder类型，显示“添加子节点”菜单项
                             popupMenu.add(addItem);
@@ -301,6 +303,16 @@ public class HttpTextEditorGUI extends JFrame {
                             // 如果不是，移除该菜单项确保它不显示
                             popupMenu.remove(addItem);
                         }
+                        if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(selectedNode.getType())
+                                || TreeType.SECTION_FOLDER.type().equals(selectedNode.getType())){
+                            popupMenu.remove(renameItem);
+                            popupMenu.remove(deleteItem);
+                        }else{
+                            popupMenu.add(renameItem);
+                            popupMenu.add(deleteItem);
+                        }
+
+
                         popupMenu.show(tree, e.getX(), e.getY());
                     }
                 }
@@ -309,10 +321,14 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 实现删除操作
         deleteItem.addActionListener(e -> {
-            DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-            if (selectedNode != null && selectedNode.getParent() != null) { // 确保选中的节点不是根节点
-                treeModel.removeNodeFromParent(selectedNode);
+            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
+            if (selectedNode == null ) {
+                return;
             }
+            TreeNode parent = (TreeNode) selectedNode.getParent();
+            parent.deleteChild(selectedNode);
+            treeModel.removeNodeFromParent(selectedNode);
+            CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
         });
 
         // 实现重命名操作
@@ -320,7 +336,17 @@ public class HttpTextEditorGUI extends JFrame {
             TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
-                if (newName != null && !newName.trim().isEmpty()) {
+                if (newName == null || newName.trim().isEmpty()){
+                    return;
+                }
+
+                if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())){
+                    boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i->i.getName().equalsIgnoreCase(newName));
+                    if (hasSameName){
+                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                }else {
                     if (!newName.endsWith(TreeNode.nameSuffix(selectedNode.getType()))){
                         JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
                         return;
@@ -330,12 +356,16 @@ public class HttpTextEditorGUI extends JFrame {
                         JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                    newName = TreeNode.buildName(newName,selectedNode.getType());
-                    selectedNode.setUserObject(newName);
-                    treeModel.nodeChanged(selectedNode);
-                    backEndServer.update(selectedNode);
-                    backEndServer.updateProjectTree();
+                    boolean isUpdated = backEndServer.updateName(newName,selectedNode.getType(),selectedNode.getId());
+                    if (!isUpdated){
+                        JOptionPane.showMessageDialog(null,"名字更新失败","错误",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
                 }
+                //异步更新树
+                selectedNode.setName(newName);
+                treeModel.nodeChanged(selectedNode);
+                CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
             }
         });
 
@@ -375,8 +405,8 @@ public class HttpTextEditorGUI extends JFrame {
                         selectedNode.addChild(childNode);
                         // 通知模型节点已经发生变化，以刷新显示
                         treeModel.nodesWereInserted(selectedNode, new int[]{selectedNode.getIndex(childNode)});
-                        // 更新数据库数据
-                        backEndServer.updateProjectTree();
+                        // 异步更新数据库数据
+                        CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
                     }
                 }
             }

@@ -1,5 +1,4 @@
 host:
-#  url: http://3.112.254.37:10000/
   url: http://localhost:10000/
 token: null
 project:

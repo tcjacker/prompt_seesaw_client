@@ -87,7 +87,8 @@ public class HttpRequestClient {
         try {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
-            RequestBody requestBody = RequestBody.create(JacksonUtils.ObjectToJsonStr(body), mediaType);
+            String bodyStr =JacksonUtils.ObjectToJsonStr(body);
+            RequestBody requestBody = RequestBody.create(bodyStr, mediaType);
             Request request = new Request.Builder()
                     // 标识为 PUT 请求
                     .put(requestBody)

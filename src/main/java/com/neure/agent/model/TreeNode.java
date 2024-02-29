@@ -2,6 +2,8 @@ package com.neure.agent.model;
 
 
 import com.neure.agent.constant.TreeType;
+import com.neure.agent.utils.JacksonUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.List;
  * @author tc
  * @date 2024-02-24 21:43
  */
+@Slf4j
 public class TreeNode extends DefaultMutableTreeNode {
 
     private Integer id = -1;
@@ -54,8 +57,8 @@ public class TreeNode extends DefaultMutableTreeNode {
     }
 
     public static String buildName(String name, String type) {
-        if (name.contains(".")) {
-            throw new IllegalArgumentException();
+        if (name.endsWith(nameSuffix(type))) {
+            return name;
         }
         return name + nameSuffix(type);
     }
@@ -140,5 +143,16 @@ public class TreeNode extends DefaultMutableTreeNode {
 
     public String getBaseType() {
         return baseType;
+    }
+
+    public void deleteChild(TreeNode selectedNode) {
+        for (int i=0;i<this.children.size();i++){
+            TreeNode n = this.children.get(i);
+            if (n.id.equals( selectedNode.id)){
+                this.children.remove(i);
+                return;
+            }
+        }
+        log.error("selectedNode [{}] 不存在", JacksonUtils.ObjectToJsonStr(selectedNode));
     }
 }

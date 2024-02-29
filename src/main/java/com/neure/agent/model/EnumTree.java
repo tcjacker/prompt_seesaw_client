@@ -17,7 +17,7 @@ public class EnumTree {
     private String name = "";
     private String type = "";
 
-    List<EnumTree> children = new ArrayList<>();
+    List<EnumTree> children = new ArrayList<>(0);
 
     public Integer getId() {
         return id;
