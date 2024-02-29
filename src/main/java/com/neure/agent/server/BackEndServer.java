@@ -247,4 +247,8 @@ public class BackEndServer {
         }
         throw new IllegalArgumentException();
     }
+
+    public List<HistoryItem> queryHistory(PromptNode selectedNode) {
+        return new ArrayList<>();
+    }
 }

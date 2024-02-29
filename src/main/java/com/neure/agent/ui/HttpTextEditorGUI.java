@@ -2,6 +2,7 @@ package com.neure.agent.ui;
 
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.Editable;
+import com.neure.agent.model.HistoryItem;
 import com.neure.agent.model.Setting;
 import com.neure.agent.model.PromptNode;
 import com.neure.agent.server.BackEndServer;
@@ -9,6 +10,8 @@ import com.neure.agent.server.Session;
 import com.neure.agent.server.TextEditor;
 import com.neure.agent.utils.TreeUtils;
 
+
+import java.util.List;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -21,7 +24,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 /**
  * HttpTextEditorGUI
@@ -45,13 +47,15 @@ public class HttpTextEditorGUI extends JFrame {
 
     JTextField httpTextField;
 
-    DefaultListModel<String> historyModel;
+    DefaultListModel<HistoryItem> historyModel;
 
     JTextArea detailTextArea;
 
     JTextArea requestParamsTextArea;
 
     JTextArea httpResponseArea;
+
+//    JTextArea historyTextArea;
 
 
     public HttpTextEditorGUI(Session session, BackEndServer backEndServer) {
@@ -122,29 +126,37 @@ public class HttpTextEditorGUI extends JFrame {
 
     private JSplitPane initialHistoryPane() {
         historyModel = new DefaultListModel<>();
-        JList<String> historyList = new JList<>(historyModel);
+        JList<HistoryItem> historyList = new JList<>(historyModel);
 
         // 定义显示详细返回内容的文本区域
-        detailTextArea = new JTextArea();
-        detailTextArea.setEditable(false);
+        JTextArea paramTextArea = new JTextArea();
+        paramTextArea.setEditable(false);
+        JTextArea responseTextArea = new JTextArea();
+        responseTextArea.setEditable(false);
 
-        // 为历史记录列表添加选择监听器
+
         historyList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                String selectedValue = historyList.getSelectedValue();
-                // 假设我们可以根据selectedValue获取相应的详细信息
-                // 这里仅作为展示，实际应用中需要根据selectedValue获取实际内容
-                detailTextArea.setText("详细内容显示: " + selectedValue);
+                HistoryItem selectedValue = historyList.getSelectedValue();
+                if (selectedValue != null) {
+                    paramTextArea.setText("参数: " + selectedValue.param());
+                    responseTextArea.setText("响应: " + selectedValue.response());
+                }
             }
         });
 
-        // 创建滚动面板包装历史列表和详细信息文本区域
         JScrollPane historyScrollPane = new JScrollPane(historyList);
-        JScrollPane detailScrollPane = new JScrollPane(detailTextArea);
+        JScrollPane paramScrollPane = new JScrollPane(paramTextArea);
+        JScrollPane responseScrollPane = new JScrollPane(responseTextArea);
+
+        // 创建一个垂直分割面板包含参数和响应的文本区域
+        JSplitPane detailSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, paramScrollPane, responseScrollPane);
+        detailSplitPane.setDividerLocation(150); // 根据需要调整
 
         // 使用JSplitPane分割历史记录和详细内容的显示
-        JSplitPane historyDetailSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, historyScrollPane, detailScrollPane);
-        historyDetailSplitPane.setDividerLocation(300); // 根据需要调整分隔条位置
+        JSplitPane historyDetailSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, historyScrollPane, detailSplitPane);
+        historyDetailSplitPane.setDividerLocation(300); // 根据需要调整
+
         return historyDetailSplitPane;
     }
 
@@ -301,8 +313,6 @@ public class HttpTextEditorGUI extends JFrame {
         // 添加一个新的菜单项
         JMenuItem addItem = new JMenuItem("添加子节点");
 
-
-
         // 为JTree添加鼠标监听器以显示弹出菜单
         tree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
@@ -439,7 +449,9 @@ public class HttpTextEditorGUI extends JFrame {
         Editable editable = backEndServer.getPrompt(selectedNode);
         detailTextArea.setText(editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
-
+        historyModel.clear();
+        List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
+        historyModel.addAll(historyItemList);
     }
 
     /**
@@ -457,6 +469,9 @@ public class HttpTextEditorGUI extends JFrame {
         if (path != null) {
             PromptNode selectedNode = (PromptNode) path.getLastPathComponent();
             if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
+                popupMenu.remove(deleteItem);
+                popupMenu.remove(addItem);
+                popupMenu.add(renameItem);
                 return;
             }
             if (TreeUtils.isFolder(selectedNode)) {
