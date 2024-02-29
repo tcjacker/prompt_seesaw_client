@@ -16,7 +16,7 @@ import java.util.List;
  * @date 2024-02-24 21:43
  */
 @Slf4j
-public class TreeNode extends DefaultMutableTreeNode {
+public class PromptNode extends DefaultMutableTreeNode {
 
     private Integer id = -1;
     private String name = "";
@@ -25,14 +25,14 @@ public class TreeNode extends DefaultMutableTreeNode {
     private String baseType = "";
 
     private String status = "";
-    private List<TreeNode> children = new ArrayList<>();
+    private List<PromptNode> children = new ArrayList<>();
 
-    public TreeNode() {
+    public PromptNode() {
     }
 
     // 构造函数
-    public static TreeNode build(String name, String type, String baseType) {
-        TreeNode node = build(name, type);
+    public static PromptNode build(String name, String type, String baseType) {
+        PromptNode node = build(name, type);
         if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(type) || TreeType.PROMPT.type().equalsIgnoreCase(type)) {
             node.baseType = TreeType.PROMPT.type();
         } else if (TreeType.SECTION_FOLDER.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
@@ -43,14 +43,14 @@ public class TreeNode extends DefaultMutableTreeNode {
         return node;
     }
 
-    private TreeNode(String name) {
+    private PromptNode(String name) {
         super(name);
         this.name = name;
     }
 
-    public static TreeNode build(String name, String type) {
+    public static PromptNode build(String name, String type) {
         String n = buildName(name, type);
-        TreeNode node = new TreeNode(n);
+        PromptNode node = new PromptNode(n);
         node.type = type;
         return node;
 
@@ -87,13 +87,13 @@ public class TreeNode extends DefaultMutableTreeNode {
 
 
     // 添加子节点
-    public void addChild(TreeNode child) {
+    public void addChild(PromptNode child) {
         children.add(child);
         super.add(child);
 
     }
 
-    public void add(TreeNode child) {
+    public void add(PromptNode child) {
         addChild(child);
     }
 
@@ -106,7 +106,7 @@ public class TreeNode extends DefaultMutableTreeNode {
         return type;
     }
 
-    public List<TreeNode> getChildren() {
+    public List<PromptNode> getChildren() {
         return children;
     }
 
@@ -134,8 +134,8 @@ public class TreeNode extends DefaultMutableTreeNode {
         this.status = status;
     }
 
-    public void setChildren(List<TreeNode> children) {
-        for (TreeNode t : children) {
+    public void setChildren(List<PromptNode> children) {
+        for (PromptNode t : children) {
             add(t);
         }
     }
@@ -145,9 +145,9 @@ public class TreeNode extends DefaultMutableTreeNode {
         return baseType;
     }
 
-    public void deleteChild(TreeNode selectedNode) {
+    public void deleteChild(PromptNode selectedNode) {
         for (int i=0;i<this.children.size();i++){
-            TreeNode n = this.children.get(i);
+            PromptNode n = this.children.get(i);
             if (n.id.equals( selectedNode.id)){
                 this.children.remove(i);
                 return;

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @date 2024-02-25 15:45
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PromptTemplate {
+public class PromptTemplate  implements Editable{
 
     private int id;
     private String name;

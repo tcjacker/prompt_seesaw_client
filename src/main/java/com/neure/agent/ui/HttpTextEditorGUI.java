@@ -1,10 +1,13 @@
 package com.neure.agent.ui;
 
 import com.neure.agent.constant.TreeType;
+import com.neure.agent.model.Editable;
 import com.neure.agent.model.Setting;
-import com.neure.agent.model.TreeNode;
+import com.neure.agent.model.PromptNode;
 import com.neure.agent.server.BackEndServer;
 import com.neure.agent.server.Session;
+import com.neure.agent.server.TextEditor;
+import com.neure.agent.utils.TreeUtils;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -36,7 +39,7 @@ public class HttpTextEditorGUI extends JFrame {
 
     DefaultTreeModel treeModel;
 
-    TreeNode rootData;
+    PromptNode rootData;
 
     Setting setting;
 
@@ -45,6 +48,10 @@ public class HttpTextEditorGUI extends JFrame {
     DefaultListModel<String> historyModel;
 
     JTextArea detailTextArea;
+
+    JTextArea requestParamsTextArea;
+
+    JTextArea httpResponseArea;
 
 
     public HttpTextEditorGUI(Session session, BackEndServer backEndServer) {
@@ -107,6 +114,7 @@ public class HttpTextEditorGUI extends JFrame {
 
         httpTextField.setText(setting.getUrl());
         detailTextArea.setText("");
+        requestParamsTextArea.setText("");
         historyModel.clear();
 
 
@@ -217,8 +225,11 @@ public class HttpTextEditorGUI extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
 
         httpTextField = new JTextField(session.getUrl());
-        JTextArea httpResponseArea = new JTextArea();
+        httpResponseArea = new JTextArea();
         httpResponseArea.setEditable(false);
+
+        requestParamsTextArea = new JTextArea();
+        requestParamsTextArea.setEditable(true);
 
         // 模型选择下拉列表和温度输入框
         String[] models = {"Model 1", "Model 2", "Model 3"};
@@ -231,6 +242,7 @@ public class HttpTextEditorGUI extends JFrame {
         JButton publishButton = new JButton("发布prompt");
         httpSendButton.addActionListener(e -> publish(httpTextField.getText(), httpResponseArea));
         JScrollPane httpResponseScrollPane = new JScrollPane(httpResponseArea);
+        JScrollPane requestParamsScrollPane = new JScrollPane(requestParamsTextArea); // 为了滚动
 
         // 设置组件位置和大小
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -262,9 +274,16 @@ public class HttpTextEditorGUI extends JFrame {
         gbc.weightx = 0.5; // 同上
         httpPanel.add(publishButton, gbc);
 
+        gbc.gridx = 0;
+        gbc.gridy = 3; // 调整为放在httpResponseScrollPane上方
+        gbc.gridwidth = 2; // 占满整行
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5; // 可以根据需要调整
+        gbc.fill = GridBagConstraints.BOTH; // 填充方式
+        httpPanel.add(requestParamsScrollPane, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.gridwidth = GridBagConstraints.ABOVE_BASELINE;
@@ -288,44 +307,37 @@ public class HttpTextEditorGUI extends JFrame {
         tree.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
-                    int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-                    tree.setSelectionRow(row);
-                    TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-                    if (path != null) {
-                        TreeNode selectedNode = (TreeNode) path.getLastPathComponent();
-                        if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
-                            return;
-                        }
-                        if (isAllowed(selectedNode)) {
-                            // 如果是folder类型，显示“添加子节点”菜单项
-                            popupMenu.add(addItem);
-                        } else {
-                            // 如果不是，移除该菜单项确保它不显示
-                            popupMenu.remove(addItem);
-                        }
-                        if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(selectedNode.getType())
-                                || TreeType.SECTION_FOLDER.type().equals(selectedNode.getType())){
-                            popupMenu.remove(renameItem);
-                            popupMenu.remove(deleteItem);
-                        }else{
-                            popupMenu.add(renameItem);
-                            popupMenu.add(deleteItem);
-                        }
+                    showMenu(e, popupMenu, addItem, renameItem, deleteItem);
+                }
+            }
 
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int selRow = tree.getRowForLocation(e.getX(), e.getY());
 
-                        popupMenu.show(tree, e.getX(), e.getY());
+                if(selRow != -1) {
+                    TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
+                    if (selPath != null){
+                        PromptNode selectedNode = (PromptNode) selPath.getLastPathComponent();
+                        if(e.getClickCount() == 1) {
+                            handleTreeNodeClick(selectedNode);
+                        }
+                        else if(e.getClickCount() == 2) {
+                            handleTreeNodeDoubleClick(selectedNode);
+                        }
                     }
+
                 }
             }
         });
 
         // 实现删除操作
         deleteItem.addActionListener(e -> {
-            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
+            PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
             if (selectedNode == null ) {
                 return;
             }
-            TreeNode parent = (TreeNode) selectedNode.getParent();
+            PromptNode parent = (PromptNode) selectedNode.getParent();
             parent.deleteChild(selectedNode);
             treeModel.removeNodeFromParent(selectedNode);
             CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
@@ -333,7 +345,7 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 实现重命名操作
         renameItem.addActionListener(e -> {
-            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
+            PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
                 if (newName == null || newName.trim().isEmpty()){
@@ -347,7 +359,7 @@ public class HttpTextEditorGUI extends JFrame {
                         return;
                     }
                 }else {
-                    if (!newName.endsWith(TreeNode.nameSuffix(selectedNode.getType()))){
+                    if (!newName.endsWith(PromptNode.nameSuffix(selectedNode.getType()))){
                         JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
                         return;
                     }
@@ -372,7 +384,7 @@ public class HttpTextEditorGUI extends JFrame {
 
         // 为新增子节点菜单项添加动作监听器
         addItem.addActionListener(e -> {
-            TreeNode selectedNode = (TreeNode) tree.getLastSelectedPathComponent();
+            PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 // 创建下拉列表让用户选择节点类型
                 String[] types = new String[]{selectedNode.getBaseType(),TreeType.FOLDER.type()};
@@ -394,7 +406,7 @@ public class HttpTextEditorGUI extends JFrame {
                    }
                     if (name != null && !name.trim().isEmpty()) {
                         // 根据选择创建新的节点
-                        TreeNode childNode = TreeNode.build(name, type,selectedNode.getBaseType());
+                        PromptNode childNode = PromptNode.build(name, type,selectedNode.getBaseType());
                         if (TreeType.PROMPT.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
                             boolean isSuccess = backEndServer.addNode(childNode, type);
                             if (!isSuccess){
@@ -416,14 +428,62 @@ public class HttpTextEditorGUI extends JFrame {
         return tree;
     }
 
-    private boolean isAllowed(TreeNode selectedNode) {
-        return Stream.of(TreeType.PROMPT_FOLDER.type(), TreeType.SECTION_FOLDER.type()
-                , TreeType.FOLDER.type()).anyMatch(i -> i.equalsIgnoreCase(selectedNode.getType()));
+    /**
+     * 处理单击
+     * @param selectedNode
+     */
+    private void handleTreeNodeClick(PromptNode selectedNode) {
+        if (!TreeUtils.isEditable(selectedNode)){
+            return;
+        }
+        Editable editable = backEndServer.getPrompt(selectedNode);
+        detailTextArea.setText(editable.getContent());
+        requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
+
     }
 
-    private TreeNode initialTreeNode() {
+    /**
+     * 处理双击
+     * @param selectedNode
+     */
+    private void handleTreeNodeDoubleClick(PromptNode selectedNode) {
+        return;
+    }
+
+    private void showMenu(MouseEvent e, JPopupMenu popupMenu, JMenuItem addItem, JMenuItem renameItem, JMenuItem deleteItem) {
+        int row = tree.getClosestRowForLocation(e.getX(), e.getY());
+        tree.setSelectionRow(row);
+        TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+        if (path != null) {
+            PromptNode selectedNode = (PromptNode) path.getLastPathComponent();
+            if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
+                return;
+            }
+            if (TreeUtils.isFolder(selectedNode)) {
+                // 如果是folder类型，显示“添加子节点”菜单项
+                popupMenu.add(addItem);
+            } else {
+                // 如果不是，移除该菜单项确保它不显示
+                popupMenu.remove(addItem);
+            }
+            if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(selectedNode.getType())
+                    || TreeType.SECTION_FOLDER.type().equals(selectedNode.getType())){
+                popupMenu.remove(renameItem);
+                popupMenu.remove(deleteItem);
+            }else{
+                popupMenu.add(renameItem);
+                popupMenu.add(deleteItem);
+            }
+            popupMenu.show(tree, e.getX(), e.getY());
+        }
+    }
+
+
+    private PromptNode initialTreeNode() {
         return backEndServer.getPromptTree();
     }
+
+
 
     private void sendHttpRequest(String content, String urlString, Object o, String temperature, JTextArea responseArea) {
         try {
@@ -448,9 +508,9 @@ public class HttpTextEditorGUI extends JFrame {
 
     }
 
-    private static DefaultMutableTreeNode convertToTreeNode(TreeNode treeNode) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(treeNode.getName());
-        for (TreeNode child : treeNode.getChildren()) {
+    private static DefaultMutableTreeNode convertToTreeNode(PromptNode promptNode) {
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(promptNode.getName());
+        for (PromptNode child : promptNode.getChildren()) {
             node.add(convertToTreeNode(child));
         }
         return node;

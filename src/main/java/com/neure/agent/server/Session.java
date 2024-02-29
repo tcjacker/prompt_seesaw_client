@@ -1,6 +1,6 @@
 package com.neure.agent.server;
 
-import com.neure.agent.model.TreeNode;
+import com.neure.agent.model.PromptNode;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -19,9 +19,9 @@ public class Session {
 
     String url;
 
-    TreeNode sectionTree;
+    PromptNode sectionTree;
 
-    TreeNode promptTree;
+    PromptNode promptTree;
     private final ConcurrentMap<String, Object> params = new ConcurrentHashMap<>();
 
     public void set(String key, Object o) {
@@ -56,19 +56,19 @@ public class Session {
         this.url = url;
     }
 
-    public TreeNode getSectionTree() {
+    public PromptNode getSectionTree() {
         return sectionTree;
     }
 
-    public void setSectionTree(TreeNode sectionTree) {
+    public void setSectionTree(PromptNode sectionTree) {
         this.sectionTree = sectionTree;
     }
 
-    public TreeNode getPromptTree() {
+    public PromptNode getPromptTree() {
         return promptTree;
     }
 
-    public void setPromptTree(TreeNode promptTree) {
+    public void setPromptTree(PromptNode promptTree) {
         this.promptTree = promptTree;
     }
 }
