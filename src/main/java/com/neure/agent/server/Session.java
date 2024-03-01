@@ -13,15 +13,16 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class Session {
 
-    int projectId ;
+    private int projectId ;
 
-    String token;
+    private String token;
 
-    String url;
+    private String url;
 
-    PromptNode sectionTree;
+    private PromptNode sectionTree;
 
-    PromptNode promptTree;
+    private PromptNode promptTree;
+
     private final ConcurrentMap<String, Object> params = new ConcurrentHashMap<>();
 
     public void set(String key, Object o) {
