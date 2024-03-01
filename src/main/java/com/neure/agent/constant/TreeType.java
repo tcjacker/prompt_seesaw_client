@@ -17,16 +17,17 @@ public enum TreeType {
     PROMPT("prompt"),
     SECTION("section");
     private String type = "";
-    private TreeType(String type){
+
+    TreeType(String type) {
         this.type = type;
     }
 
-    public String type(){
-        return type;
+    public static TreeType get(String type) {
+        return Arrays.stream(TreeType.values()).filter(i -> i.type().equals(type))
+                .findFirst().orElseThrow(IllegalArgumentException::new);
     }
 
-    public static TreeType get(String type){
-        return Arrays.stream(TreeType.values()).filter(i->i.type().equals(type))
-                .findFirst().orElseThrow(IllegalArgumentException::new);
+    public String type() {
+        return type;
     }
 }

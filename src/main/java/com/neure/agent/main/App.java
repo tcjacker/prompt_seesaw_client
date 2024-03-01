@@ -7,14 +7,14 @@ import com.neure.agent.ui.HttpTextEditorGUI;
 
 import javax.swing.*;
 
-public class App  {
+public class App {
 
     public static void main(String[] args) {
         Session session = initialSession();
         BackEndServer backEndServer = initialServer(session);
         // 在事件调度线程中创建和显示GUI，以确保线程安全
         SwingUtilities.invokeLater(() -> {
-            HttpTextEditorGUI frame = new HttpTextEditorGUI(session,backEndServer);
+            HttpTextEditorGUI frame = new HttpTextEditorGUI(session, backEndServer);
             frame.setVisible(true);
         });
     }

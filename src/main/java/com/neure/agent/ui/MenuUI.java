@@ -13,14 +13,14 @@ public class MenuUI {
 
     public static final MenuUI INSTANCE = new MenuUI();
 
-    public static MenuUI getInstance(){
+    private MenuUI() {
+    }
+
+    public static MenuUI getInstance() {
         return Objects.requireNonNullElseGet(INSTANCE, MenuUI::new);
     }
 
-    private MenuUI(){
-    }
-
-    public JMenuBar build(){
+    public JMenuBar build() {
         // 创建菜单栏
         JMenuBar menuBar = new JMenuBar();
         // 创建文件菜单

@@ -30,7 +30,7 @@ public class BackEndServer {
 
 
     public PromptNode getPromptTree() {
-        int projectId = session.projectId;
+        int projectId = session.getProjectId();
         Project project = queryProject(projectId);
         if (project == null) {
             return null;
@@ -38,7 +38,7 @@ public class BackEndServer {
         PromptNode rootData = PromptNode.build(project.getName(), TreeType.ROOT.type(), TreeType.ROOT.type());
         PromptNode section = PromptNode.build("section_tree", TreeType.SECTION_FOLDER.type(), TreeType.SECTION.type());
         PromptNode prompt = PromptNode.build("template_tree", TreeType.PROMPT_FOLDER.type(), TreeType.PROMPT.type());
-        String url = session.getUrl() + "project/tree/get/" + session.projectId;
+        String url = session.getUrl() + "project/tree/get/" + session.getProjectId();
         DefaultResponse<ProjectEnumTree> projectEnumTree = HttpRequestClient.sendGet(url, ProjectEnumTree.class);
         if (projectEnumTree.isSuccess() && projectEnumTree.getBody() != null) {
             ProjectEnumTree peTree = projectEnumTree.getBody();
@@ -69,10 +69,10 @@ public class BackEndServer {
         PromptNode node = PromptNode.build(e.getName(), e.getType());
         node.setId(e.getId());
         node.setType(e.getType());
-        if (e.getChildren()!=null){
+        if (e.getChildren() != null) {
             List<PromptNode> child = e.getChildren().stream().map(this::converter).toList();
             node.setChildren(child);
-        }else {
+        } else {
             node.setChildren(new ArrayList<>(0));
         }
         return node;
@@ -88,7 +88,7 @@ public class BackEndServer {
 //    }
 
     public Project queryProject(int id) {
-        String requestUrl = session.url + "project/get/" + id;
+        String requestUrl = session.getUrl() + "project/get/" + id;
         DefaultResponse<Project> response = HttpRequestClient.sendGet(requestUrl, Project.class);
         if (response.isSuccess()) {
             return response.getBody();
@@ -105,10 +105,10 @@ public class BackEndServer {
         PromptNode promptTree = session.getPromptTree();
         EnumTree sections = converter(sectionTree);
         EnumTree prompts = converter(promptTree);
-        Map<String,List<EnumTree>> projectEnumTree = new ConcurrentHashMap<>(2);
-        projectEnumTree.put("section_tree",sections.getChildren());
-        projectEnumTree.put("template_tree",prompts.getChildren());
-        String url = session.getUrl() + "project/tree/update/" + session.projectId;
+        Map<String, List<EnumTree>> projectEnumTree = new ConcurrentHashMap<>(2);
+        projectEnumTree.put("section_tree", sections.getChildren());
+        projectEnumTree.put("template_tree", prompts.getChildren());
+        String url = session.getUrl() + "project/tree/update/" + session.getProjectId();
         DefaultResponse<Boolean> defaultResponse = HttpRequestClient.sendPut(url, projectEnumTree, Boolean.class);
         if (!defaultResponse.isSuccess()) {
             log.error(defaultResponse.getMessage());
@@ -129,9 +129,9 @@ public class BackEndServer {
     public boolean addPromptTreeNode(PromptNode node) {
         PromptTemplate promptTemplate = new PromptTemplate();
         promptTemplate.setName(node.getName());
-        promptTemplate.setProjectId(session.projectId);
+        promptTemplate.setProjectId(session.getProjectId());
         promptTemplate.setContent(" ");
-        String requestUrl = session.url + "prompt_template/create";
+        String requestUrl = session.getUrl() + "prompt_template/create";
         DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl, promptTemplate, Integer.class);
         if (response.isSuccess()) {
             int id = response.getBody();
@@ -147,10 +147,10 @@ public class BackEndServer {
     public boolean addSectionTreeNode(PromptNode node) {
         PromptSection promptSection = new PromptSection();
         promptSection.setName(node.getName());
-        promptSection.setProjectId(session.projectId);
+        promptSection.setProjectId(session.getProjectId());
         promptSection.setContent(" ");
         promptSection.setType(TreeType.SECTION.type());
-        String requestUrl = session.url + "prompt_section/create";
+        String requestUrl = session.getUrl() + "prompt_section/create";
         DefaultResponse<Integer> response = HttpRequestClient.sendPost(requestUrl, promptSection, Integer.class);
         if (response.isSuccess()) {
             int id = response.getBody();
@@ -164,7 +164,7 @@ public class BackEndServer {
     }
 
     public boolean checkName(String name, String type) {
-        String url = "";
+        String url;
         if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
             url = session.getUrl() + "prompt_template/check_name/";
         } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
@@ -172,7 +172,7 @@ public class BackEndServer {
         } else {
             return true;
         }
-        url = url + session.projectId + "/" + name;
+        url = url + session.getProjectId() + "/" + name;
         DefaultResponse<Boolean> response = HttpRequestClient.sendGet(url, Boolean.class);
         return response.isSuccess() && response.getBody();
     }
@@ -181,26 +181,28 @@ public class BackEndServer {
         if (id == null || id <=0){
             return null;
         }
-        String url = session.url + "id/"+id;
-        DefaultResponse<PromptTemplate> response =HttpRequestClient.sendGet(url,PromptTemplate.class);
-        if (response.isSuccess()){
+        String requestUrl = session.getUrl() + "prompt_template/id/" + id;
+        DefaultResponse<PromptTemplate> response = HttpRequestClient.sendGet(requestUrl, PromptTemplate.class);
+        if (response.isSuccess()) {
             return response.getBody();
+        } else {
+            log.error("Failed To Get Template {}, Message {}, Code {}", id, response.getMessage(), response.getCode());
+            return null;
         }
-        log.error("failed send request {}",response.getMessage());
-        return null;
     }
 
     public PromptSection getSection(Integer id) {
         if (id == null || id <=0){
             return null;
         }
-        String url = session.url + "id/"+id;
-        DefaultResponse<PromptSection> response =HttpRequestClient.sendGet(url,PromptSection.class);
-        if (response.isSuccess()){
+        String requestUrl = session.getUrl() + "prompt_section/id/" + id;
+        DefaultResponse<PromptSection> response = HttpRequestClient.sendGet(requestUrl, PromptSection.class);
+        if (response.isSuccess()) {
             return response.getBody();
+        } else {
+            log.error("Failed To Get Section {}, Message {}, Code {}", id, response.getMessage(), response.getCode());
+            return null;
         }
-        log.error("failed send request {}",response.getMessage());
-        return null;
     }
 
     public String sendRequest(String content, Integer id, String model, Double temperature) {
@@ -236,9 +238,9 @@ public class BackEndServer {
     public boolean updateName(String name, String type, Integer id) {
         String url = "";
         if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
-            url = session.getUrl() + "prompt_section/update/" + id;
-        } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
             url = session.getUrl() + "prompt_template/update/" + id;
+        } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
+            url = session.getUrl() + "prompt_section/update/" + id;
         } else {
             return true;
         }
@@ -259,9 +261,9 @@ public class BackEndServer {
     }
 
     public Editable getPrompt(PromptNode selectedNode) {
-        if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())){
+        if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())) {
             return getSection(selectedNode.getId());
-        }else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())){
+        } else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())) {
             return getPromptTemplate(selectedNode.getId());
         }
         throw new IllegalArgumentException();

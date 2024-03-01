@@ -23,26 +23,10 @@ import java.util.List;
 @Slf4j
 public class JacksonUtils {
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
-
     //动态过滤属性相关
     static final String DYNC_INCLUDE = "DYNC_INCLUDE";
     static final String DYNC_FILTER = "DYNC_FILTER";
-
-    @JsonFilter(DYNC_FILTER)
-    interface DynamicFilter {
-
-    }
-
-    @JsonFilter(DYNC_INCLUDE)
-    interface DynamicInclude {
-
-    }
-
-    public static ObjectMapper getNewObject() {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper;
-    }
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     static {
         //序列化
@@ -66,6 +50,11 @@ public class JacksonUtils {
         objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);//允许出现特殊字符和转义符、
         objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);//允许出现单引号
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);//遇到未知属性不抛出JsonMappingException
+    }
+
+    public static ObjectMapper getNewObject() {
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper;
     }
 
     public static <T> String ObjectToJsonStr(T t) {
@@ -95,16 +84,15 @@ public class JacksonUtils {
         return objectMapper.readValue(jsonString, classType);
     }
 
-    public static <T> T StrToObject(String jsonString,TypeReference<T> valueTypeRef) throws JsonProcessingException {
-        return objectMapper.readValue(jsonString,valueTypeRef);
+    public static <T> T StrToObject(String jsonString, TypeReference<T> valueTypeRef) throws JsonProcessingException {
+        return objectMapper.readValue(jsonString, valueTypeRef);
     }
 
-    public static <T> DefaultResponse<T> StrToResponse(String jsonString,Class<T> classType) throws JsonProcessingException {
+    public static <T> DefaultResponse<T> StrToResponse(String jsonString, Class<T> classType) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         JavaType javaType = objectMapper.getTypeFactory().constructParametricType(DefaultResponse.class, classType);
         return objectMapper.readValue(jsonString, javaType);
     }
-
 
     public static <T> List<T> StrToObjectList(String jsonString) throws JsonProcessingException {
 
@@ -162,7 +150,9 @@ public class JacksonUtils {
      * @param filter  转换时过滤那些字段
      */
     public static void filter(Class<?> clazz, String include, String filter) {
-        if (clazz == null) { return; }
+        if (clazz == null) {
+            return;
+        }
         if (include != null && include.length() > 0) {
             objectMapper.setFilterProvider(new SimpleFilterProvider().addFilter(DYNC_INCLUDE,
                     SimpleBeanPropertyFilter.filterOutAllExcept(include.split(","))));
@@ -172,5 +162,15 @@ public class JacksonUtils {
                     SimpleBeanPropertyFilter.serializeAllExcept(filter.split(","))));
             objectMapper.addMixIn(clazz, DynamicFilter.class);
         }
+    }
+
+    @JsonFilter(DYNC_FILTER)
+    interface DynamicFilter {
+
+    }
+
+    @JsonFilter(DYNC_INCLUDE)
+    interface DynamicInclude {
+
     }
 }

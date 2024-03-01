@@ -1,16 +1,12 @@
 package com.neure.agent.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.model.DefaultResponse;
 import com.neure.agent.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -24,15 +20,15 @@ import java.util.Map;
 @Slf4j
 public class HttpRequestClient {
 
-    private static OkHttpClient httpClient = new OkHttpClient.Builder().build();
+    private static final OkHttpClient httpClient = new OkHttpClient.Builder().build();
 
 
-    public static <T> DefaultResponse<T> sendGet(String url,Class<T> classType) {
-        return sendGet(url, classType,null, null);
+    public static <T> DefaultResponse<T> sendGet(String url, Class<T> classType) {
+        return sendGet(url, classType, null, null);
     }
 
     // 发送GET请求
-    public static <T> DefaultResponse<T> sendGet(String url,Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
+    public static <T> DefaultResponse<T> sendGet(String url, Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
         url = buildURLWithParams(url, urlParams);
         try {
             Request request = new Request.Builder()
@@ -44,20 +40,20 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Get] URL: {}", url);
             return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
         return DefaultResponse.Error();
-
     }
 
-    public static <T> DefaultResponse<T> sendPost(String url, Object body,Class<T> classType) {
+    public static <T> DefaultResponse<T> sendPost(String url, Object body, Class<T> classType) {
         return sendPost(url, body, classType, null, null);
     }
 
     // 发送POST请求
-    public static <T> DefaultResponse<T> sendPost(String url, Object body,Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
+    public static <T> DefaultResponse<T> sendPost(String url, Object body, Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
         try {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
@@ -71,6 +67,7 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Post] URL: {}, Body: {}", url, JacksonUtils.ObjectToJsonStr(body));
             return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -78,16 +75,16 @@ public class HttpRequestClient {
         return DefaultResponse.Error();
     }
 
-    public static <T> DefaultResponse<T> sendPut(String url, Object body,Class<T> classType) {
+    public static <T> DefaultResponse<T> sendPut(String url, Object body, Class<T> classType) {
         return sendPut(url, body, classType, null, null);
     }
 
     // 发送POST请求
-    public static <T> DefaultResponse<T> sendPut(String url, Object body,Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
+    public static <T> DefaultResponse<T> sendPut(String url, Object body, Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
         try {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
-            String bodyStr =JacksonUtils.ObjectToJsonStr(body);
+            String bodyStr = JacksonUtils.ObjectToJsonStr(body);
             RequestBody requestBody = RequestBody.create(bodyStr, mediaType);
             Request request = new Request.Builder()
                     // 标识为 PUT 请求
@@ -98,23 +95,24 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
-            return analysisResponse(response,classType);
+            log.debug("[Put] URL: {}, Body: {}", url, bodyStr);
+            return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
         return DefaultResponse.Error();
     }
 
-    public static <T> DefaultResponse<T> sendDelete(String url, Object body,Class<T> classType) {
+    public static <T> DefaultResponse<T> sendDelete(String url, Object body, Class<T> classType) {
         return sendDelete(url, body, classType, null, null);
     }
 
-    public static <T> DefaultResponse<T> sendDelete(String url,Class<T> classType) {
-        return sendDelete(url, classType,null, null, null);
+    public static <T> DefaultResponse<T> sendDelete(String url, Class<T> classType) {
+        return sendDelete(url, classType, null, null, null);
     }
 
     // 发送POST请求
-    public static <T> DefaultResponse<T> sendDelete(String url, Object body,Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
+    public static <T> DefaultResponse<T> sendDelete(String url, Object body, Class<T> classType, Map<String, String> urlParams, Map<String, String> headersMap) {
         try {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
@@ -128,7 +126,8 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
-            return analysisResponse(response,classType);
+            log.debug("[Delete] URL: {}, Body: {}", url, JacksonUtils.ObjectToJsonStr(body));
+            return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
@@ -170,7 +169,7 @@ public class HttpRequestClient {
 
 
     @NotNull
-    private static <T> DefaultResponse<T> analysisResponse(Response response,Class<T> classType) {
+    private static <T> DefaultResponse<T> analysisResponse(Response response, Class<T> classType) {
         if (response == null) {
             return DefaultResponse.Error();
         }
@@ -183,7 +182,8 @@ public class HttpRequestClient {
                 return DefaultResponse.buildSuccess();
             }
             String jsonStr = response.body().string();
-            return JacksonUtils.StrToResponse(jsonStr,  classType);
+            log.debug("[Response] Body: {}", jsonStr);
+            return JacksonUtils.StrToResponse(jsonStr, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
             return DefaultResponse.Error();

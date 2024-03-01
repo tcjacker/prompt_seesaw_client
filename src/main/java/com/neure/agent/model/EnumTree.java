@@ -13,11 +13,10 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EnumTree {
+    List<EnumTree> children = new ArrayList<>(0);
     private Integer id = -1;
     private String name = "";
     private String type = "";
-
-    List<EnumTree> children = new ArrayList<>(0);
 
     public Integer getId() {
         return id;

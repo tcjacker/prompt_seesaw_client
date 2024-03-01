@@ -13,11 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TextEditor {
 
-    public static Map<String,String> paramsResolver(String content){
+    public static Map<String, String> paramsResolver(String content) {
         return new ConcurrentHashMap<>();
     }
 
-    public static String paramsResolverStr(String content){
+    public static String paramsResolverStr(String content) {
         return JacksonUtils.ObjectToJsonStr(paramsResolver(content));
     }
 }

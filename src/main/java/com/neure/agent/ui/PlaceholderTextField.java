@@ -6,10 +6,10 @@ package com.neure.agent.ui;
  * @author tc
  * @date 2024-02-24 22:35
  */
-import java.awt.*;
 
 import javax.swing.*;
 import javax.swing.text.Document;
+import java.awt.*;
 
 public class PlaceholderTextField extends JTextField {
 
@@ -30,8 +30,7 @@ public class PlaceholderTextField extends JTextField {
     public PlaceholderTextField(
             final Document pDoc,
             final String pText,
-            final int pColumns)
-    {
+            final int pColumns) {
         super(pDoc, pText, pColumns);
     }
 
@@ -51,6 +50,10 @@ public class PlaceholderTextField extends JTextField {
         return placeholder;
     }
 
+    public void setPlaceholder(final String s) {
+        placeholder = s;
+    }
+
     @Override
     protected void paintComponent(final Graphics pG) {
         super.paintComponent(pG);
@@ -66,10 +69,6 @@ public class PlaceholderTextField extends JTextField {
         g.setColor(getDisabledTextColor());
         g.drawString(placeholder, getInsets().left, pG.getFontMetrics()
                 .getMaxAscent() + getInsets().top);
-    }
-
-    public void setPlaceholder(final String s) {
-        placeholder = s;
     }
 
 }
