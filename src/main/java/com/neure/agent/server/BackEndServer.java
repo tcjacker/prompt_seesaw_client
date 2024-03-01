@@ -276,7 +276,7 @@ public class BackEndServer {
     public boolean renameProject(String newName) {
         Project project = new Project();
         project.setName(newName);
-        String url = session.url + "/project/update/"+session.projectId;
+        String url = session.getUrl() + "/project/update/"+session.getProjectId();
         DefaultResponse<String> response = HttpRequestClient.sendPut(url,project,String.class);
         return response.isSuccess();
     }
@@ -291,7 +291,7 @@ public class BackEndServer {
         }
         Map<String,String> body = new ConcurrentHashMap<>(1);
         body.put("content",detailTextArea.getText());
-        String url = session.url;
+        String url = session.getUrl();
         if (TreeType.SECTION.type().equalsIgnoreCase(node.getType())){
             url = url + "prompt_section/update/";
         }else {
