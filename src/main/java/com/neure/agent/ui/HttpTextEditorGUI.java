@@ -49,7 +49,7 @@ public class HttpTextEditorGUI extends JFrame {
 
     DefaultListModel<HistoryItem> historyModel;
 
-    JTextArea detailTextArea;
+    PromptTextArea detailTextArea;
 
     JTextArea requestParamsTextArea;
 
@@ -117,7 +117,7 @@ public class HttpTextEditorGUI extends JFrame {
         tree.setModel(newTreeModel);
 
         httpTextField.setText(setting.getUrl());
-        detailTextArea.setText("");
+        detailTextArea.clear();
         requestParamsTextArea.setText("");
         historyModel.clear();
 
@@ -180,10 +180,16 @@ public class HttpTextEditorGUI extends JFrame {
         settingsMenu.add(projectIdItem);
         settingsMenu.add(hostUrlItem);
 
+        JMenu saveMenu = new JMenu("保存");
+
+        saveMenu.addActionListener(e->{
+            backEndServer.savePromptContent(detailTextArea);
+        });
 
         // 将文件和设置菜单添加到菜单栏
         menuBar.add(fileMenu);
         menuBar.add(settingsMenu);
+        menuBar.add(saveMenu);
 
 //        // 为新建prompt菜单项添加事件处理器（根据需要实现）
         newProject.addActionListener(e -> {
@@ -368,7 +374,19 @@ public class HttpTextEditorGUI extends JFrame {
                         JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
                         return;
                     }
-                }else {
+                } else if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
+                    boolean isChanged = backEndServer.renameProject(newName);
+                    if (isChanged){
+                        JOptionPane.showMessageDialog(null,"更新成功","成功",JOptionPane.PLAIN_MESSAGE);
+                        selectedNode.setName(newName);
+                        treeModel.nodeChanged(selectedNode);
+                    }else {
+                        JOptionPane.showMessageDialog(null,"更新失败","错误",JOptionPane.ERROR_MESSAGE);
+                    }
+                    return;
+
+                }
+                else {
                     if (!newName.endsWith(PromptNode.nameSuffix(selectedNode.getType()))){
                         JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
                         return;
@@ -447,7 +465,7 @@ public class HttpTextEditorGUI extends JFrame {
             return;
         }
         Editable editable = backEndServer.getPrompt(selectedNode);
-        detailTextArea.setText(editable.getContent());
+        detailTextArea.bind(selectedNode,editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
         historyModel.clear();
         List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
@@ -472,6 +490,7 @@ public class HttpTextEditorGUI extends JFrame {
                 popupMenu.remove(deleteItem);
                 popupMenu.remove(addItem);
                 popupMenu.add(renameItem);
+                popupMenu.show(tree, e.getX(), e.getY());
                 return;
             }
             if (TreeUtils.isFolder(selectedNode)) {

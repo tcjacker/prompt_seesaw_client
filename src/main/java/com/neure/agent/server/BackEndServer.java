@@ -3,6 +3,7 @@ package com.neure.agent.server;
 import com.neure.agent.client.HttpRequestClient;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
+import com.neure.agent.ui.PromptTextArea;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -177,11 +178,29 @@ public class BackEndServer {
     }
 
     public PromptTemplate getPromptTemplate(Integer id) {
-        return new PromptTemplate();
+        if (id == null || id <=0){
+            return null;
+        }
+        String url = session.url + "id/"+id;
+        DefaultResponse<PromptTemplate> response =HttpRequestClient.sendGet(url,PromptTemplate.class);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        log.error("failed send request {}",response.getMessage());
+        return null;
     }
 
     public PromptSection getSection(Integer id) {
-        return new PromptSection();
+        if (id == null || id <=0){
+            return null;
+        }
+        String url = session.url + "id/"+id;
+        DefaultResponse<PromptSection> response =HttpRequestClient.sendGet(url,PromptSection.class);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        log.error("failed send request {}",response.getMessage());
+        return null;
     }
 
     public String sendRequest(String content, Integer id, String model, Double temperature) {
@@ -250,5 +269,33 @@ public class BackEndServer {
 
     public List<HistoryItem> queryHistory(PromptNode selectedNode) {
         return new ArrayList<>();
+    }
+
+    public boolean renameProject(String newName) {
+        Project project = new Project();
+        project.setName(newName);
+        String url = session.url + "/project/update/"+session.projectId;
+        DefaultResponse<String> response = HttpRequestClient.sendPut(url,project,String.class);
+        return response.isSuccess();
+    }
+
+    public void savePromptContent(PromptTextArea detailTextArea) {
+        if (detailTextArea == null){
+            return;
+        }
+        PromptNode node = detailTextArea.getNode();
+        if (node == null){
+            return;
+        }
+        Map<String,String> body = new ConcurrentHashMap<>(1);
+        body.put("content",detailTextArea.getText());
+        String url = session.url;
+        if (TreeType.SECTION.type().equalsIgnoreCase(node.getType())){
+            url = url + "prompt_section/update/";
+        }else {
+            url = url + "prompt_template/update/";
+        }
+        url = url + node.getId();
+        HttpRequestClient.sendPut(url,body,String.class);
     }
 }
