@@ -1,7 +1,5 @@
 package com.neure.agent.model;
 
-import com.neure.agent.utils.JacksonUtils;
-
 /**
  * Response
  *
@@ -36,7 +34,7 @@ public class DefaultResponse<T> {
         return r;
     }
 
-    public  boolean isSuccess() {
+    public boolean isSuccess() {
         return this.code == 200;
     }
 

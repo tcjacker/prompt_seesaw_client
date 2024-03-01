@@ -68,10 +68,10 @@ public class BackEndServer {
         PromptNode node = PromptNode.build(e.getName(), e.getType());
         node.setId(e.getId());
         node.setType(e.getType());
-        if (e.getChildren()!=null){
+        if (e.getChildren() != null) {
             List<PromptNode> child = e.getChildren().stream().map(this::converter).toList();
             node.setChildren(child);
-        }else {
+        } else {
             node.setChildren(new ArrayList<>(0));
         }
         return node;
@@ -104,9 +104,9 @@ public class BackEndServer {
         PromptNode promptTree = session.getPromptTree();
         EnumTree sections = converter(sectionTree);
         EnumTree prompts = converter(promptTree);
-        Map<String,List<EnumTree>> projectEnumTree = new ConcurrentHashMap<>(2);
-        projectEnumTree.put("section_tree",sections.getChildren());
-        projectEnumTree.put("template_tree",prompts.getChildren());
+        Map<String, List<EnumTree>> projectEnumTree = new ConcurrentHashMap<>(2);
+        projectEnumTree.put("section_tree", sections.getChildren());
+        projectEnumTree.put("template_tree", prompts.getChildren());
         String url = session.getUrl() + "project/tree/update/" + session.getProjectId();
         DefaultResponse<Boolean> defaultResponse = HttpRequestClient.sendPut(url, projectEnumTree, Boolean.class);
         if (!defaultResponse.isSuccess()) {
@@ -163,7 +163,7 @@ public class BackEndServer {
     }
 
     public boolean checkName(String name, String type) {
-        String url = "";
+        String url;
         if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
             url = session.getUrl() + "prompt_template/check_name/";
         } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
@@ -254,9 +254,9 @@ public class BackEndServer {
     }
 
     public Editable getPrompt(PromptNode selectedNode) {
-        if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())){
+        if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())) {
             return getSection(selectedNode.getId());
-        } else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())){
+        } else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())) {
             return getPromptTemplate(selectedNode.getId());
         }
         throw new IllegalArgumentException();

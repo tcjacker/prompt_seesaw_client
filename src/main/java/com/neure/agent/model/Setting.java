@@ -7,8 +7,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -20,16 +18,13 @@ import java.util.Map;
 @Slf4j
 public class Setting {
 
+    private final static String PATH = "src/main/resources/config.yaml";
     private String url;
-
     private Integer projectId;
-
     private String token;
 
-    private final static String PATH = "src/main/resources/config.yaml";
 
-
-    public Setting(){
+    public Setting() {
         Yaml yaml = new Yaml();
         try {
             FileInputStream inputStream = new FileInputStream(PATH);
@@ -38,26 +33,26 @@ public class Setting {
 
             // 访问具体的配置项
             Map<String, Object> host = (Map<String, Object>) data.get("host");
-            if (host != null && host.size() > 0){
+            if (host != null && host.size() > 0) {
                 url = (String) host.get("url");
             }
 
             Map<String, Object> project = (Map<String, Object>) data.get("project");
-            if (project != null && project.size() > 0){
+            if (project != null && project.size() > 0) {
                 projectId = (Integer) project.get("id");
             }
 
             token = (String) data.get("token");
 
         } catch (FileNotFoundException e) {
-            log.error("error is : ",e);
+            log.error("error is : ", e);
         }
     }
 
     /**
      * 刷新设置文件
      */
-    private void flush(){
+    private void flush() {
         Yaml yaml = new Yaml();
         try {
             // 读取YAML文件
@@ -67,12 +62,12 @@ public class Setting {
             // 修改数据
             // 访问具体的配置项
             Map<String, Object> host = (Map<String, Object>) data.get("host");
-            host.put("url",url);
+            host.put("url", url);
 
             Map<String, Object> project = (Map<String, Object>) data.get("project");
-            project.put("id",projectId);
+            project.put("id", projectId);
 
-           data.put("token",token);
+            data.put("token", token);
 
             // 写回YAML文件
             DumperOptions options = new DumperOptions();
@@ -82,7 +77,7 @@ public class Setting {
             FileWriter writer = new FileWriter(PATH);
             yaml.dump(data, writer);
         } catch (Exception e) {
-            log.error("error is : ",e);
+            log.error("error is : ", e);
         }
     }
 
