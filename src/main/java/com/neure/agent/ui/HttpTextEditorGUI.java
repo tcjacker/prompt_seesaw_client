@@ -3,15 +3,13 @@ package com.neure.agent.ui;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.Editable;
 import com.neure.agent.model.HistoryItem;
-import com.neure.agent.model.Setting;
 import com.neure.agent.model.PromptNode;
+import com.neure.agent.model.Setting;
 import com.neure.agent.server.BackEndServer;
 import com.neure.agent.server.Session;
 import com.neure.agent.server.TextEditor;
 import com.neure.agent.utils.TreeUtils;
 
-
-import java.util.List;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -23,6 +21,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -90,7 +89,7 @@ public class HttpTextEditorGUI extends JFrame {
         JSplitPane splitPaneRight = new JSplitPane(JSplitPane.VERTICAL_SPLIT, httpPanel, historyDetailSplitPane);
         splitPaneRight.setDividerLocation(200); // Adjust divider
         JSplitPane splitPaneCenter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, textScrollPane, splitPaneRight);
-        splitPaneCenter.setDividerLocation(300);
+        splitPaneCenter.setDividerLocation(500);
         JSplitPane splitPaneLeft = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, splitPaneCenter);
         splitPaneLeft.setDividerLocation(150);
 
@@ -103,6 +102,13 @@ public class HttpTextEditorGUI extends JFrame {
 
     }
 
+    private static DefaultMutableTreeNode convertToTreeNode(PromptNode promptNode) {
+        DefaultMutableTreeNode node = new DefaultMutableTreeNode(promptNode.getName());
+        for (PromptNode child : promptNode.getChildren()) {
+            node.add(convertToTreeNode(child));
+        }
+        return node;
+    }
 
     public void reDraw() {
         this.session.setProjectId(setting.getProjectId());
@@ -110,7 +116,7 @@ public class HttpTextEditorGUI extends JFrame {
         this.session.setUrl(setting.getUrl());
 
         rootData = initialTreeNode();
-        if (rootData == null){
+        if (rootData == null) {
             JOptionPane.showMessageDialog(null, "项目ID不存在！", "错误", JOptionPane.ERROR_MESSAGE);
         }
         DefaultTreeModel newTreeModel = new DefaultTreeModel(rootData);
@@ -120,8 +126,6 @@ public class HttpTextEditorGUI extends JFrame {
         detailTextArea.setText("");
         requestParamsTextArea.setText("");
         historyModel.clear();
-
-
     }
 
     private JSplitPane initialHistoryPane() {
@@ -325,14 +329,13 @@ public class HttpTextEditorGUI extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 int selRow = tree.getRowForLocation(e.getX(), e.getY());
 
-                if(selRow != -1) {
+                if (selRow != -1) {
                     TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
-                    if (selPath != null){
+                    if (selPath != null) {
                         PromptNode selectedNode = (PromptNode) selPath.getLastPathComponent();
-                        if(e.getClickCount() == 1) {
+                        if (e.getClickCount() == 1) {
                             handleTreeNodeClick(selectedNode);
-                        }
-                        else if(e.getClickCount() == 2) {
+                        } else if (e.getClickCount() == 2) {
                             handleTreeNodeDoubleClick(selectedNode);
                         }
                     }
@@ -344,7 +347,7 @@ public class HttpTextEditorGUI extends JFrame {
         // 实现删除操作
         deleteItem.addActionListener(e -> {
             PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
-            if (selectedNode == null ) {
+            if (selectedNode == null) {
                 return;
             }
             PromptNode parent = (PromptNode) selectedNode.getParent();
@@ -359,11 +362,11 @@ public class HttpTextEditorGUI extends JFrame {
             if (selectedNode == null) {
                 return;
             }
-            if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())){
+            if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())) {
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
-                boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i->i.getName().equalsIgnoreCase(newName));
-                if (hasSameName){
-                    JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i -> i.getName().equalsIgnoreCase(newName));
+                if (hasSameName) {
+                    JOptionPane.showMessageDialog(null, "名字已存在", "错误", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 selectedNode.setName(newName);
@@ -371,18 +374,18 @@ public class HttpTextEditorGUI extends JFrame {
                 String realName = selectedNode.getUserObject().toString();
                 realName = realName.substring(0, realName.lastIndexOf('.')); // Remove PostFix
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", realName);
-                if (newName == null || newName.trim().isEmpty()){
+                if (newName == null || newName.trim().isEmpty()) {
                     return;
                 }
                 newName = PromptNode.buildName(newName, selectedNode.getType());
                 boolean is = backEndServer.checkName(newName, selectedNode.getType());
-                if(!is){
-                    JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                if (!is) {
+                    JOptionPane.showMessageDialog(null, "名字已存在", "错误", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 boolean isUpdated = backEndServer.updateName(newName, selectedNode.getType(), selectedNode.getId());
-                if (!isUpdated){
-                    JOptionPane.showMessageDialog(null,"名字更新失败","错误",JOptionPane.ERROR_MESSAGE);
+                if (!isUpdated) {
+                    JOptionPane.showMessageDialog(null, "名字更新失败", "错误", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 selectedNode.setName(newName);
@@ -398,7 +401,7 @@ public class HttpTextEditorGUI extends JFrame {
             PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
             if (selectedNode != null) {
                 // 创建下拉列表让用户选择节点类型
-                String[] types = new String[]{selectedNode.getBaseType(),TreeType.FOLDER.type()};
+                String[] types = new String[]{selectedNode.getBaseType(), TreeType.FOLDER.type()};
                 JComboBox<String> typeComboBox = new JComboBox<>(types);
                 JTextField nameTextField = new JTextField();
                 final JComponent[] inputs = new JComponent[]{
@@ -411,16 +414,16 @@ public class HttpTextEditorGUI extends JFrame {
                 if (result == JOptionPane.OK_OPTION) {
                     String type = (String) typeComboBox.getSelectedItem();
                     String name = nameTextField.getText();
-                   if (!backEndServer.checkName(name,type)){
-                       JOptionPane.showMessageDialog(null, "有重复名称", "错误", JOptionPane.ERROR_MESSAGE);
-                       return;
-                   }
+                    if (!backEndServer.checkName(name, type)) {
+                        JOptionPane.showMessageDialog(null, "有重复名称", "错误", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
                     if (name != null && !name.trim().isEmpty()) {
                         // 根据选择创建新的节点
-                        PromptNode childNode = PromptNode.build(name, type,selectedNode.getBaseType());
+                        PromptNode childNode = PromptNode.build(name, type, selectedNode.getBaseType());
                         if (TreeType.PROMPT.type().equalsIgnoreCase(type) || TreeType.SECTION.type().equalsIgnoreCase(type)) {
                             boolean isSuccess = backEndServer.addNode(childNode, type);
-                            if (!isSuccess){
+                            if (!isSuccess) {
                                 JOptionPane.showMessageDialog(null, "创建节点失败", "错误", JOptionPane.ERROR_MESSAGE);
                                 return;
                             }
@@ -441,10 +444,11 @@ public class HttpTextEditorGUI extends JFrame {
 
     /**
      * 处理单击
+     *
      * @param selectedNode
      */
     private void handleTreeNodeClick(PromptNode selectedNode) {
-        if (!TreeUtils.isEditable(selectedNode)){
+        if (!TreeUtils.isEditable(selectedNode)) {
             return;
         }
         Editable editable = backEndServer.getPrompt(selectedNode);
@@ -457,10 +461,10 @@ public class HttpTextEditorGUI extends JFrame {
 
     /**
      * 处理双击
+     *
      * @param selectedNode
      */
     private void handleTreeNodeDoubleClick(PromptNode selectedNode) {
-        return;
     }
 
     private void showMenu(MouseEvent e, JPopupMenu popupMenu, JMenuItem addItem, JMenuItem renameItem, JMenuItem deleteItem) {
@@ -469,7 +473,7 @@ public class HttpTextEditorGUI extends JFrame {
         TreePath path = tree.getPathForLocation(e.getX(), e.getY());
         if (path != null) {
             PromptNode selectedNode = (PromptNode) path.getLastPathComponent();
-            if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
+            if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())) {
                 popupMenu.remove(deleteItem);
                 popupMenu.remove(addItem);
                 popupMenu.add(renameItem);
@@ -483,10 +487,10 @@ public class HttpTextEditorGUI extends JFrame {
                 popupMenu.remove(addItem);
             }
             if (TreeType.PROMPT_FOLDER.type().equalsIgnoreCase(selectedNode.getType())
-                    || TreeType.SECTION_FOLDER.type().equals(selectedNode.getType())){
+                    || TreeType.SECTION_FOLDER.type().equals(selectedNode.getType())) {
                 popupMenu.remove(renameItem);
                 popupMenu.remove(deleteItem);
-            }else{
+            } else {
                 popupMenu.add(renameItem);
                 popupMenu.add(deleteItem);
             }
@@ -494,12 +498,9 @@ public class HttpTextEditorGUI extends JFrame {
         }
     }
 
-
     private PromptNode initialTreeNode() {
         return backEndServer.getPromptTree();
     }
-
-
 
     private void sendHttpRequest(String content, String urlString, Object o, String temperature, JTextArea responseArea) {
         try {
@@ -519,17 +520,8 @@ public class HttpTextEditorGUI extends JFrame {
         }
     }
 
-
     private void publish(String urlString, JTextArea responseArea) {
 
-    }
-
-    private static DefaultMutableTreeNode convertToTreeNode(PromptNode promptNode) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(promptNode.getName());
-        for (PromptNode child : promptNode.getChildren()) {
-            node.add(convertToTreeNode(child));
-        }
-        return node;
     }
 
 }
