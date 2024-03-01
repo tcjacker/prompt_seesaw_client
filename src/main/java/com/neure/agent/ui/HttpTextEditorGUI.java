@@ -356,39 +356,40 @@ public class HttpTextEditorGUI extends JFrame {
         // 实现重命名操作
         renameItem.addActionListener(e -> {
             PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
-            if (selectedNode != null) {
+            if (selectedNode == null) {
+                return;
+            }
+            if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())){
                 String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
+                boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i->i.getName().equalsIgnoreCase(newName));
+                if (hasSameName){
+                    JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                selectedNode.setName(newName);
+            } else {
+                String realName = selectedNode.getUserObject().toString();
+                realName = realName.substring(0, realName.lastIndexOf('.')); // Remove PostFix
+                String newName = JOptionPane.showInputDialog(null, "输入新名称:", realName);
                 if (newName == null || newName.trim().isEmpty()){
                     return;
                 }
-
-                if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())){
-                    boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i->i.getName().equalsIgnoreCase(newName));
-                    if (hasSameName){
-                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }else {
-                    if (!newName.endsWith(PromptNode.nameSuffix(selectedNode.getType()))){
-                        JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    boolean is = backEndServer.checkName(newName,selectedNode.getType());
-                    if(!is){
-                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    boolean isUpdated = backEndServer.updateName(newName,selectedNode.getType(),selectedNode.getId());
-                    if (!isUpdated){
-                        JOptionPane.showMessageDialog(null,"名字更新失败","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
+                newName = PromptNode.buildName(newName, selectedNode.getType());
+                boolean is = backEndServer.checkName(newName, selectedNode.getType());
+                if(!is){
+                    JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
+                    return;
                 }
-                //异步更新树
+                boolean isUpdated = backEndServer.updateName(newName, selectedNode.getType(), selectedNode.getId());
+                if (!isUpdated){
+                    JOptionPane.showMessageDialog(null,"名字更新失败","错误",JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
                 selectedNode.setName(newName);
-                treeModel.nodeChanged(selectedNode);
-                CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
             }
+            treeModel.nodeChanged(selectedNode);
+            //异步更新树
+            CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
         });
 
 

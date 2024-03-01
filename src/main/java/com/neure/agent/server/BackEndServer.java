@@ -217,9 +217,9 @@ public class BackEndServer {
     public boolean updateName(String name, String type, Integer id) {
         String url = "";
         if (TreeType.PROMPT.type().equalsIgnoreCase(type)) {
-            url = session.getUrl() + "prompt_section/update/" + id;
-        } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
             url = session.getUrl() + "prompt_template/update/" + id;
+        } else if (TreeType.SECTION.type().equalsIgnoreCase(type)) {
+            url = session.getUrl() + "prompt_section/update/" + id;
         } else {
             return true;
         }

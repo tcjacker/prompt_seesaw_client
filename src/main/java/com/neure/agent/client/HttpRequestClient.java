@@ -1,7 +1,5 @@
 package com.neure.agent.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.model.DefaultResponse;
 import com.neure.agent.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,8 +7,6 @@ import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -44,12 +40,12 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Get] URL: {}", url);
             return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
         return DefaultResponse.Error();
-
     }
 
     public static <T> DefaultResponse<T> sendPost(String url, Object body,Class<T> classType) {
@@ -71,6 +67,7 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Post] URL: {}, Body: {}", url, JacksonUtils.ObjectToJsonStr(body));
             return analysisResponse(response, classType);
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -87,7 +84,7 @@ public class HttpRequestClient {
         try {
             url = buildURLWithParams(url, urlParams);
             MediaType mediaType = MediaType.parse("application/json; charset=UTF-8");
-            String bodyStr =JacksonUtils.ObjectToJsonStr(body);
+            String bodyStr = JacksonUtils.ObjectToJsonStr(body);
             RequestBody requestBody = RequestBody.create(bodyStr, mediaType);
             Request request = new Request.Builder()
                     // 标识为 PUT 请求
@@ -98,6 +95,7 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Put] URL: {}, Body: {}", url, bodyStr);
             return analysisResponse(response,classType);
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -128,6 +126,7 @@ public class HttpRequestClient {
                     .build();
             Call call = httpClient.newCall(request);
             Response response = call.execute();
+            log.debug("[Delete] URL: {}, Body: {}", url, JacksonUtils.ObjectToJsonStr(body));
             return analysisResponse(response,classType);
         } catch (IOException e) {
             log.error(e.getMessage());
@@ -183,6 +182,7 @@ public class HttpRequestClient {
                 return DefaultResponse.buildSuccess();
             }
             String jsonStr = response.body().string();
+            log.debug("[Response] Body: {}", jsonStr);
             return JacksonUtils.StrToResponse(jsonStr,  classType);
         } catch (IOException e) {
             log.error(e.getMessage());
