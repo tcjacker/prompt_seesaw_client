@@ -48,7 +48,7 @@ public class HttpTextEditorGUI extends JFrame {
 
     DefaultListModel<HistoryItem> historyModel;
 
-    JTextArea detailTextArea;
+    JTextPane detailTextArea;
 
     JTextArea requestParamsTextArea;
 
@@ -75,11 +75,11 @@ public class HttpTextEditorGUI extends JFrame {
 
 
         // 中间的富文本编辑框
-        JTextPane textPane = new JTextPane();
-        JScrollPane textScrollPane = new JScrollPane(textPane);
+        detailTextArea = new JTextPane();
+        JScrollPane textScrollPane = new JScrollPane(detailTextArea);
 
         // 右侧HTTP请求部分
-        JPanel httpPanel = initialHttpPanel(textPane);
+        JPanel httpPanel = initialHttpPanel(detailTextArea);
 
         // 定义历史记录列表模型
         JSplitPane historyDetailSplitPane = initialHistoryPane();
@@ -452,6 +452,10 @@ public class HttpTextEditorGUI extends JFrame {
             return;
         }
         Editable editable = backEndServer.getPrompt(selectedNode);
+        if (editable == null) {
+            JOptionPane.showMessageDialog(null, "获取节点内容失败", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         detailTextArea.setText(editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
         historyModel.clear();

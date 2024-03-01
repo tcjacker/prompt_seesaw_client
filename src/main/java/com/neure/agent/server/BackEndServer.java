@@ -177,11 +177,25 @@ public class BackEndServer {
     }
 
     public PromptTemplate getPromptTemplate(Integer id) {
-        return new PromptTemplate();
+        String requestUrl = session.url + "prompt_template/id/" + id;
+        DefaultResponse<PromptTemplate> response = HttpRequestClient.sendGet(requestUrl, PromptTemplate.class);
+        if (response.isSuccess()) {
+            return response.getBody();
+        } else {
+            log.error("Failed To Get Template {}, Message {}, Code {}", id, response.getMessage(), response.getCode());
+            return null;
+        }
     }
 
     public PromptSection getSection(Integer id) {
-        return new PromptSection();
+        String requestUrl = session.url + "prompt_section/id/" + id;
+        DefaultResponse<PromptSection> response = HttpRequestClient.sendGet(requestUrl, PromptSection.class);
+        if (response.isSuccess()) {
+            return response.getBody();
+        } else {
+            log.error("Failed To Get Section {}, Message {}, Code {}", id, response.getMessage(), response.getCode());
+            return null;
+        }
     }
 
     public String sendRequest(String content, Integer id, String model, Double temperature) {
@@ -242,7 +256,7 @@ public class BackEndServer {
     public Editable getPrompt(PromptNode selectedNode) {
         if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())){
             return getSection(selectedNode.getId());
-        }else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())){
+        } else if (TreeType.PROMPT.type().equalsIgnoreCase(selectedNode.getType())){
             return getPromptTemplate(selectedNode.getId());
         }
         throw new IllegalArgumentException();
