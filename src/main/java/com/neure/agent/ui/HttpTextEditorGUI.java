@@ -401,6 +401,7 @@ public class HttpTextEditorGUI extends JFrame {
             String response = backEndServer.sendRequest(request,httpTextField.getText());
             httpResponseArea.setText(response);
             historyModel.clear();
+            httpResponseArea.setText("");
             flashHistoryTo(detailTextArea.getNode());
         });
         JButton publishButton = new JButton("发布prompt");
@@ -617,13 +618,11 @@ public class HttpTextEditorGUI extends JFrame {
         detailTextArea.setEditable(true);
         detailTextArea.bind(selectedNode, editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
-
         flashHistoryTo(selectedNode);
     }
 
     private void flashHistoryTo(PromptNode selectedNode) {
         historyModel.clear();
-        httpResponseArea.setText("");
         List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
         historyModel.addAll(historyItemList);
     }
