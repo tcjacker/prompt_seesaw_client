@@ -22,8 +22,10 @@ public class App {
             InputMap inputMap = frame.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
             // 定义快捷键为Control + S
             KeyStroke keyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK);
+            KeyStroke macosKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.META_DOWN_MASK);
             // 在InputMap中添加这个快捷键，关联到一个自定义的键
             inputMap.put(keyStroke, "autoSave");
+            inputMap.put(macosKeyStroke, "autoSave");
 
             // 获取JFrame的根面板的ActionMap，并定义一个对应的Action
             ActionMap actionMap = frame.getRootPane().getActionMap();

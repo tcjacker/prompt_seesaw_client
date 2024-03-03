@@ -3,10 +3,7 @@ package com.neure.agent.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.constant.TreeType;
-import com.neure.agent.model.Editable;
-import com.neure.agent.model.HistoryItem;
-import com.neure.agent.model.PromptNode;
-import com.neure.agent.model.Setting;
+import com.neure.agent.model.*;
 import com.neure.agent.server.BackEndServer;
 import com.neure.agent.server.Session;
 import com.neure.agent.server.TextEditor;
@@ -24,10 +21,6 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -176,6 +169,8 @@ public class HttpTextEditorGUI extends JFrame {
         if (isSuccess) {
             requestParamsTextArea.setText(TextEditor.paramsResolverStr(detailTextArea.getText()));
             showStatusMessage(node.getName() + "保存成功!", "");
+        }else {
+            showStatusMessage(node.getName() + "保存失败!", "Error");
         }
 
     }
@@ -397,8 +392,16 @@ public class HttpTextEditorGUI extends JFrame {
                     return;
                 }
             }
-            String response = backEndServer.sendRequest(httpTextField.getText(), content, detailTextArea.getNode().getId(), (String) modelComboBox.getSelectedItem(), t);
+            LLMRequest request = new LLMRequest();
+            request.setModel((String) modelComboBox.getSelectedItem());
+            request.setTemperature(t);
+            request.setPrompt(content);
+            request.setPromptId(detailTextArea.getNode().getId());
+            request.setType(detailTextArea.getNode().getType());
+            String response = backEndServer.sendRequest(request,httpTextField.getText());
             httpResponseArea.setText(response);
+            historyModel.clear();
+            flashHistoryTo(detailTextArea.getNode());
         });
         JButton publishButton = new JButton("发布prompt");
         httpSendButton.addActionListener(e -> publish(httpTextField.getText(), httpResponseArea));
@@ -614,8 +617,13 @@ public class HttpTextEditorGUI extends JFrame {
         detailTextArea.setEditable(true);
         detailTextArea.bind(selectedNode, editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
-        httpResponseArea.setText("");
+
+        flashHistoryTo(selectedNode);
+    }
+
+    private void flashHistoryTo(PromptNode selectedNode) {
         historyModel.clear();
+        httpResponseArea.setText("");
         List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
         historyModel.addAll(historyItemList);
     }

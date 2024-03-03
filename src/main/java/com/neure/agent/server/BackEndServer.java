@@ -207,17 +207,15 @@ public class BackEndServer {
         }
     }
 
-    public String sendRequest(String host,String content, Integer id, String model, Double temperature) {
+    public String sendRequest(LLMRequest request,String host) {
         String url = session.getUrl();
-        LLMRequest request = new LLMRequest();
+
         if (StringUtils.isNotBlank(host)){
             url = host;
         }
         url = url + "llm/request";
 //        request.setJsonFormat(true);
-        request.setModel(model);
-        request.setTemperature(temperature);
-        request.setPrompt(content);
+
         DefaultResponse<String> response = HttpRequestClient.sendPost(url,request,String.class);
         if (response.isSuccess()){
             return response.getBody();
@@ -258,7 +256,7 @@ public class BackEndServer {
     }
 
     /**
-     * TODO： 根据类型更新section或者prompt
+     * 根据类型更新section或者prompt
      *
      * @param name
      * @param type
@@ -299,6 +297,9 @@ public class BackEndServer {
     }
 
     public List<HistoryItem> queryHistory(PromptNode selectedNode) {
+        if (selectedNode == null){
+            return new ArrayList<>();
+        }
         return new ArrayList<>();
     }
 

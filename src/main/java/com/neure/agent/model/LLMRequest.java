@@ -14,6 +14,9 @@ import java.util.Map;
 public class LLMRequest {
 
     String model;
+    @JsonProperty("prompt_id")
+    Integer promptId;
+    String type = "prompt";
     String prompt;
     List<Map<String,String>> history;
     @JsonProperty("json_format")
@@ -58,5 +61,21 @@ public class LLMRequest {
 
     public void setTemperature(Double temperature) {
         this.temperature = temperature;
+    }
+
+    public Integer getPromptId() {
+        return promptId;
+    }
+
+    public void setPromptId(Integer promptId) {
+        this.promptId = promptId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
