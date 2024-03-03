@@ -1,5 +1,7 @@
 package com.neure.agent.ui;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.Editable;
 import com.neure.agent.model.HistoryItem;
@@ -8,9 +10,14 @@ import com.neure.agent.model.Setting;
 import com.neure.agent.server.BackEndServer;
 import com.neure.agent.server.Session;
 import com.neure.agent.server.TextEditor;
+import com.neure.agent.utils.JacksonUtils;
+import com.neure.agent.utils.StringUtils;
 import com.neure.agent.utils.TreeUtils;
 
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -21,7 +28,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -54,6 +63,9 @@ public class HttpTextEditorGUI extends JFrame {
 
     JTextArea httpResponseArea;
 
+
+    JLabel statusLabel = new JLabel("就绪");
+
 //    JTextArea historyTextArea;
 
 
@@ -66,6 +78,7 @@ public class HttpTextEditorGUI extends JFrame {
         this.session.setToken(setting.getToken());
         this.session.setUrl(setting.getUrl());
 
+
         setTitle("Prompt-SeeSaw 看见未来");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1920, 1080);
@@ -75,11 +88,12 @@ public class HttpTextEditorGUI extends JFrame {
 
 
         // 中间的富文本编辑框
-        JTextPane textPane = new JTextPane();
-        JScrollPane textScrollPane = new JScrollPane(textPane);
+        detailTextArea = new PromptTextArea();
+        detailTextArea.setEditable(false);
+        JScrollPane textScrollPane = new JScrollPane(detailTextArea);
 
         // 右侧HTTP请求部分
-        JPanel httpPanel = initialHttpPanel(textPane);
+        JPanel httpPanel = initialHttpPanel();
 
         // 定义历史记录列表模型
         JSplitPane historyDetailSplitPane = initialHistoryPane();
@@ -89,7 +103,7 @@ public class HttpTextEditorGUI extends JFrame {
         JSplitPane splitPaneRight = new JSplitPane(JSplitPane.VERTICAL_SPLIT, httpPanel, historyDetailSplitPane);
         splitPaneRight.setDividerLocation(200); // Adjust divider
         JSplitPane splitPaneCenter = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, textScrollPane, splitPaneRight);
-        splitPaneCenter.setDividerLocation(500);
+        splitPaneCenter.setDividerLocation(800);
         JSplitPane splitPaneLeft = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, splitPaneCenter);
         splitPaneLeft.setDividerLocation(150);
 
@@ -99,12 +113,39 @@ public class HttpTextEditorGUI extends JFrame {
         JMenuBar menuBar = initialMenuBar();
         // 将菜单栏设置到窗体（JFrame）中
         getContentPane().add(menuBar, BorderLayout.NORTH);
+        //设置右下角提示框
+        JPanel statusBar = new JPanel(new BorderLayout());
+        statusBar.setBorder(new BevelBorder(BevelBorder.LOWERED));
+
+        // 消息显示标签
+
+        statusLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        statusBar.add(statusLabel, BorderLayout.EAST);
+
+        // 将状态栏面板添加到主窗口（frame）的底部
+        getContentPane().add(statusBar, BorderLayout.SOUTH);
+
 
     }
 
+    // 显示消息的方法
+    public void showStatusMessage(String message, String level) {
+        statusLabel.setText(message);
+        if ("Error".equalsIgnoreCase(level)) {
+            statusLabel.setForeground(Color.RED); // 设置字体颜色为红色
+        }
+        // 设置定时器，让消息在5秒后消失
+        Timer timer = new Timer(5000, e -> {
+            statusLabel.setText("就绪");
+            statusLabel.setForeground(Color.BLACK); // 消息消失后重置字体颜色为默认颜色
+        });
+        timer.setRepeats(false); // 确保定时器只执行一次
+        timer.start();
+    }
 
-    public void reDraw() {
-        this.session.setProjectId(setting.getProjectId());
+    public void flushView(Integer projectId) {
+        setting.setProjectId(projectId);
+        this.session.setProjectId(projectId);
         this.session.setToken(setting.getToken());
         this.session.setUrl(setting.getUrl());
 
@@ -119,6 +160,24 @@ public class HttpTextEditorGUI extends JFrame {
         detailTextArea.clear();
         requestParamsTextArea.setText("");
         historyModel.clear();
+
+
+    }
+
+    public void autoSave() {
+        if (detailTextArea == null) {
+            return;
+        }
+        PromptNode node = detailTextArea.getNode();
+        if (node == null) {
+            return;
+        }
+        boolean isSuccess = backEndServer.savePromptContent(detailTextArea);
+        if (isSuccess) {
+            requestParamsTextArea.setText(TextEditor.paramsResolverStr(detailTextArea.getText()));
+            showStatusMessage(node.getName() + "保存成功!", "");
+        }
+
     }
 
     private JSplitPane initialHistoryPane() {
@@ -164,9 +223,12 @@ public class HttpTextEditorGUI extends JFrame {
         JMenu fileMenu = new JMenu("文件");
         JMenuItem newProject = new JMenuItem("新建project");
         JMenuItem exitItem = new JMenuItem("退出");
+        JMenuItem saveMenuItem = new JMenuItem("保存");
 
         // 将菜单项添加到文件菜单
         fileMenu.add(newProject);
+        fileMenu.addSeparator(); // 添加分隔线
+        fileMenu.add(saveMenuItem);
         fileMenu.addSeparator(); // 添加分隔线
         fileMenu.add(exitItem);
 
@@ -177,21 +239,65 @@ public class HttpTextEditorGUI extends JFrame {
         settingsMenu.add(projectIdItem);
         settingsMenu.add(hostUrlItem);
 
-        JMenu saveMenu = new JMenu("保存");
 
-        saveMenu.addActionListener(e->{
-            backEndServer.savePromptContent(detailTextArea);
+        saveMenuItem.addActionListener(e -> {
+            boolean isOk = backEndServer.savePromptContent(detailTextArea);
+            if (isOk){
+                requestParamsTextArea.setText(TextEditor.paramsResolverStr(detailTextArea.getText()));
+            }
+            handleResponse(isOk, "保存");
         });
 
         // 将文件和设置菜单添加到菜单栏
         menuBar.add(fileMenu);
         menuBar.add(settingsMenu);
-        menuBar.add(saveMenu);
+
 
 //        // 为新建prompt菜单项添加事件处理器（根据需要实现）
         newProject.addActionListener(e -> {
-            String projectName = JOptionPane.showInputDialog(null, "请输入Project:", "新建Project", JOptionPane.PLAIN_MESSAGE);
-            backEndServer.createProject(projectName);
+            JTextField nameTextField = new JTextField();
+            nameTextField.getDocument().addDocumentListener(new DocumentListener() {
+                public void changedUpdate(DocumentEvent e) {
+                    check();
+                }
+
+                public void removeUpdate(DocumentEvent e) {
+                    check();
+                }
+
+                public void insertUpdate(DocumentEvent e) {
+                    check();
+                }
+
+                // 检查文本字段内容并更新边框颜色
+                private void check() {
+                    if (nameTextField.getText().trim().isEmpty() || nameTextField.getText().length() <= 3) {
+                        // 用户输入为空，设置边框颜色为红色
+                        nameTextField.setBorder(BorderFactory.createLineBorder(Color.RED));
+                    } else {
+                        // 输入非空，恢复默认边框
+                        nameTextField.setBorder(UIManager.getBorder("TextField.border"));
+                    }
+                }
+            });
+
+            JTextField descriptionTextField = new JTextField();
+            final JComponent[] inputs = new JComponent[]{
+                    new JLabel("项目名称"),
+                    nameTextField,
+                    new JLabel("项目描述"),
+                    descriptionTextField
+            };
+            int result = JOptionPane.showConfirmDialog(null, inputs, "创建项目", JOptionPane.DEFAULT_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                String name = nameTextField.getText();
+                String description = descriptionTextField.getText();
+                Integer projectId = backEndServer.createProject(name, description);
+                if (projectId > 0) {
+                    flushView(projectId);
+                }
+                handleResponse(projectId != -1, "创建项目");
+            }
         });
 
         projectIdItem.addActionListener(e -> {
@@ -203,8 +309,7 @@ public class HttpTextEditorGUI extends JFrame {
                         int projectId = Integer.parseInt(input);
                         // 如果转换成功，说明是有效的int类型，可以退出循环
                         isValidInput = true;
-                        setting.setProjectId(projectId);
-                        reDraw();
+                        flushView(projectId);
                     } catch (NumberFormatException e2) {
                         // 输入的不是int类型，显示错误消息，并让循环继续
                         JOptionPane.showMessageDialog(null, "输入的项目ID不是有效的整数，请重新输入！", "错误", JOptionPane.ERROR_MESSAGE);
@@ -219,13 +324,14 @@ public class HttpTextEditorGUI extends JFrame {
 
         hostUrlItem.addActionListener(e -> {
             String url = (String) JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE, null, null, session.getUrl());
-            if (url != null && url.startsWith("http://")) {
+            if (url == null){
+                return;
+            }
+            if (url.startsWith("http://")) {
                 setting.setUrl(url);
             } else {
                 JOptionPane.showMessageDialog(null, "输入的host地址必须以http://开头", "错误", JOptionPane.ERROR_MESSAGE);
             }
-
-
         });
 
         // 为退出菜单项添加事件处理器
@@ -235,7 +341,15 @@ public class HttpTextEditorGUI extends JFrame {
         return menuBar;
     }
 
-    private JPanel initialHttpPanel(JTextPane textPane) {
+    private void handleResponse(boolean isOk, String action) {
+        if (isOk) {
+            JOptionPane.showMessageDialog(null, action + "成功！", "成功", JOptionPane.PLAIN_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null, action + "失败！", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private JPanel initialHttpPanel() {
         JPanel httpPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -247,13 +361,45 @@ public class HttpTextEditorGUI extends JFrame {
         requestParamsTextArea.setEditable(true);
 
         // 模型选择下拉列表和温度输入框
-        String[] models = {"Model 1", "Model 2", "Model 3"};
+        String[] models = {"gpt-3.5-turbo", "gpt-4","gpt-4-turbo-preview","gpt-4-32k"};
         JComboBox<String> modelComboBox = new JComboBox<>(models);
         PlaceholderTextField temperatureField = new PlaceholderTextField();
         temperatureField.setPlaceholder("输入温度，0~1.0之间");
 
         JButton httpSendButton = new JButton("发送请求");
-        httpSendButton.addActionListener(e -> sendHttpRequest(textPane.getText(), httpTextField.getText(), modelComboBox.getSelectedItem(), temperatureField.getText(), httpResponseArea));
+        httpSendButton.addActionListener(e -> {
+            double t = 0.9;
+            if (!StringUtils.isDecimal(temperatureField.getText())) {
+                showStatusMessage("温度必须是小数，已被改成默认0.9", "Error");
+            } else {
+                t = Double.parseDouble(temperatureField.getText());
+            }
+            if (detailTextArea == null || detailTextArea.getNode() == null) {
+                return;
+            }
+            //异步保存
+            CompletableFuture.runAsync(() -> backEndServer.savePromptContent(detailTextArea));
+            String content = detailTextArea.getText();
+            content = backEndServer.compiles(content);
+            if (content == null) {
+                showStatusMessage("编译失败", "Error");
+                return;
+            }
+            String textParams = requestParamsTextArea.getText();
+            Map<String, String> params = null;
+            if (textParams != null && textParams.length() > 0) {
+                try {
+                    params = JacksonUtils.StrToObject(textParams, new TypeReference<HashMap<String, String>>() {
+                    });
+                    content = TextEditor.analysisParams(content, params);
+                } catch (JsonProcessingException ex) {
+                    showStatusMessage("请求的prompt的参数格式错误", "Error");
+                    return;
+                }
+            }
+            String response = backEndServer.sendRequest(httpTextField.getText(), content, detailTextArea.getNode().getId(), (String) modelComboBox.getSelectedItem(), t);
+            httpResponseArea.setText(response);
+        });
         JButton publishButton = new JButton("发布prompt");
         httpSendButton.addActionListener(e -> publish(httpTextField.getText(), httpResponseArea));
         JScrollPane httpResponseScrollPane = new JScrollPane(httpResponseArea);
@@ -358,51 +504,51 @@ public class HttpTextEditorGUI extends JFrame {
         // 实现重命名操作
         renameItem.addActionListener(e -> {
             PromptNode selectedNode = (PromptNode) tree.getLastSelectedPathComponent();
-            if (selectedNode != null) {
-                String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
-                if (newName == null || newName.trim().isEmpty()){
-                    return;
-                }
-
-                if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())){
-                    boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i->i.getName().equalsIgnoreCase(newName));
-                    if (hasSameName){
-                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                } else if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())){
-                    boolean isChanged = backEndServer.renameProject(newName);
-                    if (isChanged){
-                        JOptionPane.showMessageDialog(null,"更新成功","成功",JOptionPane.PLAIN_MESSAGE);
-                        selectedNode.setName(newName);
-                        treeModel.nodeChanged(selectedNode);
-                    }else {
-                        JOptionPane.showMessageDialog(null,"更新失败","错误",JOptionPane.ERROR_MESSAGE);
-                    }
-                    return;
-
-                }
-                else {
-                    if (!newName.endsWith(PromptNode.nameSuffix(selectedNode.getType()))){
-                        JOptionPane.showMessageDialog(null,"不需要修改后缀","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    boolean is = backEndServer.checkName(newName,selectedNode.getType());
-                    if(!is){
-                        JOptionPane.showMessageDialog(null,"名字已存在","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                    boolean isUpdated = backEndServer.updateName(newName,selectedNode.getType(),selectedNode.getId());
-                    if (!isUpdated){
-                        JOptionPane.showMessageDialog(null,"名字更新失败","错误",JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-                }
-                //异步更新树
-                selectedNode.setName(newName);
-                treeModel.nodeChanged(selectedNode);
-                CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
+            if (selectedNode == null) {
+                return;
             }
+            String newName = JOptionPane.showInputDialog(null, "输入新名称:", selectedNode.getUserObject());
+            if (newName == null || newName.trim().isEmpty()) {
+                return;
+            }
+
+            if (TreeType.FOLDER.type().equalsIgnoreCase(selectedNode.getType())) {
+                boolean hasSameName = selectedNode.getChildren().stream().anyMatch(i -> i.getName().equalsIgnoreCase(newName));
+                if (hasSameName) {
+                    JOptionPane.showMessageDialog(null, "名字已存在", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } else if (TreeType.ROOT.type().equalsIgnoreCase(selectedNode.getType())) {
+                boolean isChanged = backEndServer.renameProject(newName);
+                if (isChanged) {
+                    JOptionPane.showMessageDialog(null, "更新成功", "成功", JOptionPane.PLAIN_MESSAGE);
+                    selectedNode.setName(newName);
+                    treeModel.nodeChanged(selectedNode);
+                } else {
+                    JOptionPane.showMessageDialog(null, "更新失败", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+                return;
+
+            } else {
+                if (!newName.endsWith(PromptNode.nameSuffix(selectedNode.getType()))) {
+                    JOptionPane.showMessageDialog(null, "不需要修改后缀", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                boolean is = backEndServer.checkName(newName, selectedNode.getType());
+                if (!is) {
+                    JOptionPane.showMessageDialog(null, "名字已存在", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                boolean isUpdated = backEndServer.updateName(newName, selectedNode.getType(), selectedNode.getId());
+                if (!isUpdated) {
+                    JOptionPane.showMessageDialog(null, "名字更新失败", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+            //异步更新树
+            selectedNode.setName(newName);
+            treeModel.nodeChanged(selectedNode);
+            CompletableFuture.runAsync(() -> backEndServer.updateProjectTree());
         });
 
 
@@ -447,15 +593,13 @@ public class HttpTextEditorGUI extends JFrame {
                 }
             }
         });
-
-
         return tree;
     }
 
     /**
      * 处理单击
      *
-     * @param selectedNode
+     * @param selectedNode 选择的节点
      */
     private void handleTreeNodeClick(PromptNode selectedNode) {
         if (!TreeUtils.isEditable(selectedNode)) {
@@ -463,12 +607,14 @@ public class HttpTextEditorGUI extends JFrame {
         }
         Editable editable = backEndServer.getPrompt(selectedNode);
         if (editable == null) {
-            JOptionPane.showMessageDialog(null, "获取节点内容失败", "错误", JOptionPane.ERROR_MESSAGE);
+            showStatusMessage(selectedNode.getName() + "：获取节点内容失败", "Error");
+            detailTextArea.setEditable(false);
             return;
         }
-        detailTextArea.setText(editable.getContent());
-//        detailTextArea.bind(selectedNode,editable.getContent());
+        detailTextArea.setEditable(true);
+        detailTextArea.bind(selectedNode, editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
+        httpResponseArea.setText("");
         historyModel.clear();
         List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
         historyModel.addAll(historyItemList);
@@ -518,23 +664,6 @@ public class HttpTextEditorGUI extends JFrame {
         return backEndServer.getPromptTree();
     }
 
-    private void sendHttpRequest(String content, String urlString, Object o, String temperature, JTextArea responseArea) {
-        try {
-            URL url = new URL(urlString);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine).append("\n");
-            }
-            in.close();
-            responseArea.setText(response.toString());
-        } catch (Exception ex) {
-            responseArea.setText("Error: " + ex.getMessage());
-        }
-    }
 
     private void publish(String urlString, JTextArea responseArea) {
 

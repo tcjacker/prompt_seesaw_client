@@ -4,7 +4,9 @@ import com.neure.agent.client.HttpRequestClient;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
 import com.neure.agent.ui.PromptTextArea;
+import com.neure.agent.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.Response;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -205,8 +207,22 @@ public class BackEndServer {
         }
     }
 
-    public String sendRequest(String content, Integer id, String model, Double temperature) {
-        return null;
+    public String sendRequest(String host,String content, Integer id, String model, Double temperature) {
+        String url = session.getUrl();
+        LLMRequest request = new LLMRequest();
+        if (StringUtils.isNotBlank(host)){
+            url = host;
+        }
+        url = url + "llm/request";
+//        request.setJsonFormat(true);
+        request.setModel(model);
+        request.setTemperature(temperature);
+        request.setPrompt(content);
+        DefaultResponse<String> response = HttpRequestClient.sendPost(url,request,String.class);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        return response.getMessage();
     }
 
     public boolean publishPrompt(Integer id) {
@@ -225,7 +241,20 @@ public class BackEndServer {
         };
     }
 
-    public void createProject(String projectName) {
+    public Integer createProject(String projectName,String description) {
+        if (projectName == null || projectName.length() <=3){
+            return -1;
+        }
+        Project project = new Project();
+        project.setName(projectName);
+        project.setDescription(description);
+        String url = session.getUrl() + "project/create";
+        DefaultResponse<Integer> response = HttpRequestClient.sendPost(url,project,Integer.class);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        log.warn("failed create project : {}",response.getMessage() );
+        return -1;
     }
 
     /**
@@ -281,13 +310,13 @@ public class BackEndServer {
         return response.isSuccess();
     }
 
-    public void savePromptContent(PromptTextArea detailTextArea) {
+    public boolean savePromptContent(PromptTextArea detailTextArea) {
         if (detailTextArea == null){
-            return;
+           return false;
         }
         PromptNode node = detailTextArea.getNode();
         if (node == null){
-            return;
+            return false;
         }
         Map<String,String> body = new ConcurrentHashMap<>(1);
         body.put("content",detailTextArea.getText());
@@ -298,6 +327,21 @@ public class BackEndServer {
             url = url + "prompt_template/update/";
         }
         url = url + node.getId();
-        HttpRequestClient.sendPut(url,body,String.class);
+        DefaultResponse<String> response =  HttpRequestClient.sendPut(url,body,String.class);
+        return response.isSuccess();
+    }
+
+    public String compiles(String content) {
+        if (StringUtils.isBlank(content)) {
+            return content;
+        }
+        Map<String,String> params = new ConcurrentHashMap<>(1);
+        params.put("content",content);
+        String url= session.getUrl() + "prompt_template/compile";
+        DefaultResponse<String> response = HttpRequestClient.sendPost(url,params,String.class);
+        if (response.isSuccess()){
+            return response.getBody();
+        }
+        return null;
     }
 }
