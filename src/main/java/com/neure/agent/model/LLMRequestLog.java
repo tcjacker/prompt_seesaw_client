@@ -20,5 +20,43 @@ public class LLMRequestLog {
     public String response = "";
     public Date requestTime = null;
 
+    public Integer getId() {
+        return id;
+    }
 
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getPromptTemplateId() {
+        return promptTemplateId;
+    }
+
+    public void setPromptTemplateId(Integer promptTemplateId) {
+        this.promptTemplateId = promptTemplateId;
+    }
+
+    public String getRequest() {
+        return request;
+    }
+
+    public void setRequest(String request) {
+        this.request = request;
+    }
+
+    public String getResponse() {
+        return response;
+    }
+
+    public void setResponse(String response) {
+        this.response = response;
+    }
+
+    public Date getRequestTime() {
+        return requestTime;
+    }
+
+    public void setRequestTime(Date requestTime) {
+        this.requestTime = requestTime;
+    }
 }

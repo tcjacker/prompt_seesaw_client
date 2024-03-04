@@ -190,8 +190,8 @@ public class HttpTextEditorGUI extends JFrame {
             if (!e.getValueIsAdjusting()) {
                 HistoryItem selectedValue = historyList.getSelectedValue();
                 if (selectedValue != null) {
-                    paramTextArea.setText("参数: " + selectedValue.param());
-                    responseTextArea.setText("响应: " + selectedValue.response());
+                    paramTextArea.setText("参数: " + selectedValue.getRequest());
+                    responseTextArea.setText("响应: " + selectedValue.getResponse());
                 }
             }
         });
@@ -400,8 +400,6 @@ public class HttpTextEditorGUI extends JFrame {
             request.setType(detailTextArea.getNode().getType());
             String response = backEndServer.sendRequest(request,httpTextField.getText());
             httpResponseArea.setText(response);
-            historyModel.clear();
-            httpResponseArea.setText("");
             flashHistoryTo(detailTextArea.getNode());
         });
         JButton publishButton = new JButton("发布prompt");
@@ -618,6 +616,7 @@ public class HttpTextEditorGUI extends JFrame {
         detailTextArea.setEditable(true);
         detailTextArea.bind(selectedNode, editable.getContent());
         requestParamsTextArea.setText(TextEditor.paramsResolverStr(editable.getContent()));
+        httpResponseArea.setText("");
         flashHistoryTo(selectedNode);
     }
 

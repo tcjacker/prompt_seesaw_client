@@ -1,5 +1,7 @@
 package com.neure.agent.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.neure.agent.model.DefaultResponse;
 import com.neure.agent.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,33 @@ public class HttpRequestClient {
             log.error(e.getMessage());
         }
         return DefaultResponse.Error();
+    }
+
+    public static String get(String url, Map<String, String> urlParams, Map<String, String> headersMap) {
+        url = buildURLWithParams(url, urlParams);
+        try {
+            Request request = new Request.Builder()
+                    // 标识为 GET 请求
+                    .get()
+                    // 设置请求路径
+                    .url(url)
+                    .headers(mapToHeaders(headersMap))
+                    .build();
+            Call call = httpClient.newCall(request);
+            Response response = call.execute();
+            log.debug("[Get] URL: {}", url);
+            if (response.code() != 200) {
+                log.error(response.message());
+                return "";
+            }
+            if (response.body() == null) {
+                return "";
+            }
+            return response.body().string();
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+        return "";
     }
 
     public static <T> DefaultResponse<T> sendPost(String url, Object body, Class<T> classType) {
@@ -190,4 +220,13 @@ public class HttpRequestClient {
         }
     }
 
+    public static <T> DefaultResponse<List<T>> sendGetList(String url, Class<T> classType) {
+        String response = get(url,null,null);
+        try {
+           return JacksonUtils.StrToResponseList(response,classType);
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+        return DefaultResponse.Error();
+    }
 }

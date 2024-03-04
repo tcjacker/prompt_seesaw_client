@@ -8,6 +8,7 @@ import com.neure.agent.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ public class BackEndServer {
     public BackEndServer(Session session) {
         this.session = session;
     }
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
 
     public PromptNode getPromptTree() {
@@ -300,6 +302,20 @@ public class BackEndServer {
         if (selectedNode == null){
             return new ArrayList<>();
         }
+        String url = session.getUrl() + "llm/history/"+selectedNode.getId();
+        DefaultResponse<List<LLMRequestLog>> response = HttpRequestClient.sendGetList(url,LLMRequestLog.class);
+        if (response.isSuccess()){
+            return response.getBody().stream().map(i->{
+                HistoryItem item = new HistoryItem();
+                item.setDisplayText(i.getResponse());
+                item.setRequest(i.getRequest());
+                item.setId(i.getId());
+                item.setRequestTime(i.requestTime);
+                item.setDisplayText(formatter.format(i.getRequestTime()));
+                return item;
+            }).collect(Collectors.toList());
+        }
+        log.error("queryHistory failed {}",response.getMessage());
         return new ArrayList<>();
     }
 

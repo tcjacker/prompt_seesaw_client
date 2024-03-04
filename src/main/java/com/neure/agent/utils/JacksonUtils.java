@@ -12,6 +12,7 @@ import com.neure.agent.model.DefaultResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -89,8 +90,13 @@ public class JacksonUtils {
     }
 
     public static <T> DefaultResponse<T> StrToResponse(String jsonString, Class<T> classType) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
         JavaType javaType = objectMapper.getTypeFactory().constructParametricType(DefaultResponse.class, classType);
+        return objectMapper.readValue(jsonString, javaType);
+    }
+
+    public static <T> DefaultResponse<List<T>> StrToResponseList(String jsonString, Class<T> classType) throws JsonProcessingException {
+        JavaType innerType = objectMapper.getTypeFactory().constructCollectionType(List.class, classType);
+        JavaType javaType = objectMapper.getTypeFactory().constructParametricType(DefaultResponse.class, innerType);
         return objectMapper.readValue(jsonString, javaType);
     }
 
