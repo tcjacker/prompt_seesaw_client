@@ -15,7 +15,7 @@ public class HistoryItem {
     String response;
     String request;
 
-    public Date requestTime = null;
+    public String requestTime;
 
     public Integer getId() {
         return id;
@@ -55,11 +55,11 @@ public class HistoryItem {
         this.request = request;
     }
 
-    public Date getRequestTime() {
+    public String getRequestTime() {
         return requestTime;
     }
 
-    public void setRequestTime(Date requestTime) {
+    public void setRequestTime(String requestTime) {
         this.requestTime = requestTime;
     }
 }

@@ -47,6 +47,7 @@ public class JacksonUtils {
         //                jsonGenerator.writeString("");
         //            }
         //        });
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
         //反序列化时
         objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);//允许出现特殊字符和转义符、
         objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);//允许出现单引号
@@ -95,7 +96,7 @@ public class JacksonUtils {
     }
 
     public static <T> DefaultResponse<List<T>> StrToResponseList(String jsonString, Class<T> classType) throws JsonProcessingException {
-        JavaType innerType = objectMapper.getTypeFactory().constructCollectionType(List.class, classType);
+        JavaType innerType = objectMapper.getTypeFactory().constructCollectionType(ArrayList.class, classType);
         JavaType javaType = objectMapper.getTypeFactory().constructParametricType(DefaultResponse.class, innerType);
         return objectMapper.readValue(jsonString, javaType);
     }

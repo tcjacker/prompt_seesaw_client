@@ -1,15 +1,21 @@
 package com.neure.agent.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.neure.agent.client.HttpRequestClient;
 import com.neure.agent.constant.TreeType;
 import com.neure.agent.model.*;
 import com.neure.agent.ui.PromptTextArea;
+import com.neure.agent.utils.JacksonUtils;
 import com.neure.agent.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Response;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -302,20 +308,35 @@ public class BackEndServer {
         if (selectedNode == null){
             return new ArrayList<>();
         }
-        String url = session.getUrl() + "llm/history/"+selectedNode.getId();
-        DefaultResponse<List<LLMRequestLog>> response = HttpRequestClient.sendGetList(url,LLMRequestLog.class);
-        if (response.isSuccess()){
-            return response.getBody().stream().map(i->{
-                HistoryItem item = new HistoryItem();
-                item.setDisplayText(i.getResponse());
-                item.setRequest(i.getRequest());
-                item.setId(i.getId());
-                item.setRequestTime(i.requestTime);
-                item.setDisplayText(formatter.format(i.getRequestTime()));
-                return item;
-            }).collect(Collectors.toList());
+        String url = session.getUrl() + "llm/history/";
+        Map<String,String> map = new ConcurrentHashMap<>(1);
+        if (TreeType.SECTION.type().equalsIgnoreCase(selectedNode.getType())){
+            map.put("prompt_section_id",String.valueOf(selectedNode.getId()));
+        }else {
+            map.put("prompt_template_id",String.valueOf(selectedNode.getId()));
         }
-        log.error("queryHistory failed {}",response.getMessage());
+        String responseStr = HttpRequestClient.get(url,map,null);
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        DefaultResponse<List<LLMRequestLog>> response = null;
+        try {
+            response = mapper.readValue(responseStr, new TypeReference<DefaultResponse<List<LLMRequestLog>>>() {
+            });
+            if (response.isSuccess()){
+                return response.getBody().stream().sorted(Comparator.comparing(LLMRequestLog::getRequestTime).reversed())
+                        .map(i->{
+                            HistoryItem item = new HistoryItem();
+                            item.setDisplayText(i.getResponse());
+                            item.setRequest(JacksonUtils.ObjectToJsonStr(i.getRequest()));
+                            item.setRequestTime(i.requestTime);
+                            item.setResponse(i.getResponse());
+                            item.setDisplayText(i.getRequestTime());
+                            return item;
+                        }).collect(Collectors.toList());
+            }
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
         return new ArrayList<>();
     }
 

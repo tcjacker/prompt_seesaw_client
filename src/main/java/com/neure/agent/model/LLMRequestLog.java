@@ -2,6 +2,7 @@ package com.neure.agent.model;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
 
@@ -14,33 +15,38 @@ import java.util.Date;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LLMRequestLog {
 
-    public Integer id = 0;
-    public Integer promptTemplateId = 0;
-    public String request = "";
+    @JsonProperty("prompt_id")
+    public Integer promptId = 0;
+    @JsonProperty("prompt_type")
+    public String prompt_type;
+    public DefaultLLMRequestDTO request;
     public String response = "";
-    public Date requestTime = null;
 
-    public Integer getId() {
-        return id;
+    public String ip;
+    @JsonProperty("request_datetime")
+    public String requestTime;
+
+    public Integer getPromptId() {
+        return promptId;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public void setPromptId(Integer promptId) {
+        this.promptId = promptId;
     }
 
-    public Integer getPromptTemplateId() {
-        return promptTemplateId;
+    public String getPrompt_type() {
+        return prompt_type;
     }
 
-    public void setPromptTemplateId(Integer promptTemplateId) {
-        this.promptTemplateId = promptTemplateId;
+    public void setPrompt_type(String prompt_type) {
+        this.prompt_type = prompt_type;
     }
 
-    public String getRequest() {
+    public DefaultLLMRequestDTO getRequest() {
         return request;
     }
 
-    public void setRequest(String request) {
+    public void setRequest(DefaultLLMRequestDTO request) {
         this.request = request;
     }
 
@@ -52,11 +58,19 @@ public class LLMRequestLog {
         this.response = response;
     }
 
-    public Date getRequestTime() {
+    public String getIp() {
+        return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
+
+    public String getRequestTime() {
         return requestTime;
     }
 
-    public void setRequestTime(Date requestTime) {
+    public void setRequestTime(String requestTime) {
         this.requestTime = requestTime;
     }
 }

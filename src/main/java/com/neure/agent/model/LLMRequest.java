@@ -16,6 +16,7 @@ public class LLMRequest {
     String model;
     @JsonProperty("prompt_id")
     Integer promptId;
+    @JsonProperty("prompt_type")
     String type = "prompt";
     String prompt;
     List<Map<String,String>> history;

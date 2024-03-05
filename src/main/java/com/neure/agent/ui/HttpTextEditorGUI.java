@@ -50,6 +50,12 @@ public class HttpTextEditorGUI extends JFrame {
 
     DefaultListModel<HistoryItem> historyModel;
 
+    JList<HistoryItem> historyList;
+
+    JTextArea responseTextArea;
+
+    JTextArea paramTextArea;
+
     PromptTextArea detailTextArea;
 
     JTextArea requestParamsTextArea;
@@ -177,12 +183,12 @@ public class HttpTextEditorGUI extends JFrame {
 
     private JSplitPane initialHistoryPane() {
         historyModel = new DefaultListModel<>();
-        JList<HistoryItem> historyList = new JList<>(historyModel);
+        historyList = new JList<>(historyModel);
 
         // 定义显示详细返回内容的文本区域
-        JTextArea paramTextArea = new JTextArea();
+         paramTextArea = new JTextArea();
         paramTextArea.setEditable(false);
-        JTextArea responseTextArea = new JTextArea();
+         responseTextArea = new JTextArea();
         responseTextArea.setEditable(false);
 
 
@@ -190,8 +196,8 @@ public class HttpTextEditorGUI extends JFrame {
             if (!e.getValueIsAdjusting()) {
                 HistoryItem selectedValue = historyList.getSelectedValue();
                 if (selectedValue != null) {
-                    paramTextArea.setText("参数: " + selectedValue.getRequest());
-                    responseTextArea.setText("响应: " + selectedValue.getResponse());
+                    paramTextArea.setText( selectedValue.getRequest());
+                    responseTextArea.setText( selectedValue.getResponse());
                 }
             }
         });
@@ -486,7 +492,6 @@ public class HttpTextEditorGUI extends JFrame {
                             handleTreeNodeDoubleClick(selectedNode);
                         }
                     }
-
                 }
             }
         });
@@ -622,8 +627,11 @@ public class HttpTextEditorGUI extends JFrame {
 
     private void flashHistoryTo(PromptNode selectedNode) {
         historyModel.clear();
+        paramTextArea.setText("");
+        responseTextArea.setText("");
         List<HistoryItem> historyItemList = backEndServer.queryHistory(selectedNode);
         historyModel.addAll(historyItemList);
+
     }
 
     /**

@@ -220,13 +220,4 @@ public class HttpRequestClient {
         }
     }
 
-    public static <T> DefaultResponse<List<T>> sendGetList(String url, Class<T> classType) {
-        String response = get(url,null,null);
-        try {
-           return JacksonUtils.StrToResponseList(response,classType);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
-        }
-        return DefaultResponse.Error();
-    }
 }
