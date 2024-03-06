@@ -343,7 +343,7 @@ public class BackEndServer {
     public boolean renameProject(String newName) {
         Project project = new Project();
         project.setName(newName);
-        String url = session.getUrl() + "/project/update/"+session.getProjectId();
+        String url = session.getUrl() + "project/update/" + session.getProjectId();
         DefaultResponse<String> response = HttpRequestClient.sendPut(url,project,String.class);
         return response.isSuccess();
     }
