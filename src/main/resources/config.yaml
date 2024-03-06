@@ -1,0 +1,5 @@
+host:
+  url: http://localhost:10000/
+token: null
+project:
+  id: 1
