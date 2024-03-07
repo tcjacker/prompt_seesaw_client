@@ -254,7 +254,6 @@ public class HttpTextEditorGUI extends JFrame {
         menuBar.add(settingsMenu);
 
 
-//        // 为新建prompt菜单项添加事件处理器（根据需要实现）
         newProject.addActionListener(e -> {
             JTextField nameTextField = new JTextField();
             nameTextField.getDocument().addDocumentListener(new DocumentListener() {
@@ -330,6 +329,7 @@ public class HttpTextEditorGUI extends JFrame {
             }
             if (url.startsWith("http://")) {
                 setting.setUrl(url);
+                flushView(session.getProjectId());
             } else {
                 JOptionPane.showMessageDialog(null, "输入的host地址必须以http://开头", "错误", JOptionPane.ERROR_MESSAGE);
             }
