@@ -175,7 +175,7 @@ public class HttpTextEditorGUI extends JFrame {
         if (isSuccess) {
             requestParamsTextArea.setText(TextEditor.paramsResolverStr(detailTextArea.getText()));
             showStatusMessage(node.getName() + "保存成功!", "");
-        }else {
+        } else {
             showStatusMessage(node.getName() + "保存失败!", "Error");
         }
 
@@ -186,9 +186,9 @@ public class HttpTextEditorGUI extends JFrame {
         historyList = new JList<>(historyModel);
 
         // 定义显示详细返回内容的文本区域
-         paramTextArea = new JTextArea();
+        paramTextArea = new JTextArea();
         paramTextArea.setEditable(false);
-         responseTextArea = new JTextArea();
+        responseTextArea = new JTextArea();
         responseTextArea.setEditable(false);
 
 
@@ -196,8 +196,8 @@ public class HttpTextEditorGUI extends JFrame {
             if (!e.getValueIsAdjusting()) {
                 HistoryItem selectedValue = historyList.getSelectedValue();
                 if (selectedValue != null) {
-                    paramTextArea.setText( selectedValue.getRequest());
-                    responseTextArea.setText( selectedValue.getResponse());
+                    paramTextArea.setText(selectedValue.getRequest());
+                    responseTextArea.setText(selectedValue.getResponse());
                 }
             }
         });
@@ -243,7 +243,7 @@ public class HttpTextEditorGUI extends JFrame {
 
         saveMenuItem.addActionListener(e -> {
             boolean isOk = backEndServer.savePromptContent(detailTextArea);
-            if (isOk){
+            if (isOk) {
                 requestParamsTextArea.setText(TextEditor.paramsResolverStr(detailTextArea.getText()));
             }
             handleResponse(isOk, "保存");
@@ -324,7 +324,7 @@ public class HttpTextEditorGUI extends JFrame {
 
         hostUrlItem.addActionListener(e -> {
             String url = (String) JOptionPane.showInputDialog(null, "输入host地址:", "host地址", JOptionPane.PLAIN_MESSAGE, null, null, session.getUrl());
-            if (url == null){
+            if (url == null) {
                 return;
             }
             if (url.startsWith("http://")) {
@@ -362,7 +362,7 @@ public class HttpTextEditorGUI extends JFrame {
         requestParamsTextArea.setEditable(true);
 
         // 模型选择下拉列表和温度输入框
-        String[] models = {"gpt-3.5-turbo", "gpt-4","gpt-4-turbo-preview","gpt-4-32k"};
+        String[] models = {"gpt-3.5-turbo", "gpt-4", "gpt-4-turbo-preview", "gpt-4-32k"};
         JComboBox<String> modelComboBox = new JComboBox<>(models);
         PlaceholderTextField temperatureField = new PlaceholderTextField();
         temperatureField.setPlaceholder("输入温度，0~1.0之间");
@@ -404,12 +404,26 @@ public class HttpTextEditorGUI extends JFrame {
             request.setPrompt(content);
             request.setPromptId(detailTextArea.getNode().getId());
             request.setType(detailTextArea.getNode().getType());
-            String response = backEndServer.sendRequest(request,httpTextField.getText());
+            String response = backEndServer.sendRequest(request, httpTextField.getText());
             httpResponseArea.setText(response);
             flashHistoryTo(detailTextArea.getNode());
         });
         JButton publishButton = new JButton("发布prompt");
-        httpSendButton.addActionListener(e -> publish(httpTextField.getText(), httpResponseArea));
+        publishButton.addActionListener(e -> {
+            double t = 0.9;
+            if (!StringUtils.isDecimal(temperatureField.getText())) {
+                showStatusMessage("温度必须是小数，已被改成默认0.9", "Error");
+            } else {
+                t = Double.parseDouble(temperatureField.getText());
+            }
+            if (detailTextArea == null || detailTextArea.getNode() == null) {
+                return;
+            }
+            //同步保存
+            backEndServer.savePromptContent(detailTextArea);
+
+            publish((String) modelComboBox.getSelectedItem(),t);
+        });
         JScrollPane httpResponseScrollPane = new JScrollPane(httpResponseArea);
         JScrollPane requestParamsScrollPane = new JScrollPane(requestParamsTextArea); // 为了滚动
 
@@ -679,8 +693,14 @@ public class HttpTextEditorGUI extends JFrame {
     }
 
 
-    private void publish(String urlString, JTextArea responseArea) {
+    private void publish(String model, double t) {
+        if (detailTextArea.getNode() == null || !detailTextArea.getNode().getType().equalsIgnoreCase(TreeType.PROMPT.type())){
+            showStatusMessage("发布节点异常，请检查是否为prompt。","Error");
+            return;
+        }
 
+       boolean isOk = backEndServer.publishPrompt(detailTextArea.getNode().getId(),model,t);
+        handleResponse(isOk,"发布Prompt");
     }
 
     private static DefaultMutableTreeNode convertToTreeNode(PromptNode promptNode) {

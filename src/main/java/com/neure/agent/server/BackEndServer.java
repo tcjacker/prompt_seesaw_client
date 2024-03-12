@@ -11,7 +11,6 @@ import com.neure.agent.ui.PromptTextArea;
 import com.neure.agent.utils.JacksonUtils;
 import com.neure.agent.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Response;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -381,5 +380,15 @@ public class BackEndServer {
             return response.getBody();
         }
         return null;
+    }
+
+    public boolean publishPrompt(Integer id, String model, double temperature) {
+        String url = session.getUrl() + "prompt_template/publish";
+        Map<String,Object> params = new ConcurrentHashMap<>(3);
+        params.put("template_id",id);
+        params.put("model",model);
+        params.put("temperature",temperature);
+        DefaultResponse<String> defaultResponse = HttpRequestClient.sendPost(url,params,String.class);
+        return defaultResponse.isSuccess();
     }
 }
