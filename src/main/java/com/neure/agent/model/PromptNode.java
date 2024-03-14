@@ -112,6 +112,13 @@ public class PromptNode extends DefaultMutableTreeNode {
         return children;
     }
 
+    public PromptNode getSectionRoot(){
+        if (!TreeType.ROOT.type().equalsIgnoreCase(type)){
+            return null;
+        }
+        return children.stream().filter(n->TreeType.SECTION_FOLDER.type().equalsIgnoreCase(n.getType())).findFirst().orElse(null);
+    }
+
     public void setChildren(List<PromptNode> children) {
         for (PromptNode t : children) {
             add(t);
@@ -151,5 +158,13 @@ public class PromptNode extends DefaultMutableTreeNode {
             }
         }
         log.error("selectedNode [{}] 不存在", JacksonUtils.ObjectToJsonStr(selectedNode));
+    }
+
+    public boolean isNotSection() {
+       return  !TreeType.SECTION.type().equalsIgnoreCase(type);
+    }
+
+    public boolean isSection() {
+        return  TreeType.SECTION.type().equalsIgnoreCase(type);
     }
 }

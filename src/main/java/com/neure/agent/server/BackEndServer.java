@@ -351,7 +351,7 @@ public class BackEndServer {
         if (detailTextArea == null){
            return false;
         }
-        PromptNode node = detailTextArea.getNode();
+        PromptNode node = detailTextArea.getSelectNode();
         if (node == null){
             return false;
         }

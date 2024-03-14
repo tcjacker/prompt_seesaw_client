@@ -10,21 +10,24 @@ import com.neure.agent.server.TextEditor;
 import com.neure.agent.utils.JacksonUtils;
 import com.neure.agent.utils.StringUtils;
 import com.neure.agent.utils.TreeUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.HashMap;
+import java.awt.event.*;
+import java.awt.geom.Rectangle2D;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * HttpTextEditorGUI
@@ -45,6 +48,9 @@ public class HttpTextEditorGUI extends JFrame {
     PromptNode rootData;
 
     Setting setting;
+
+    private static String filterText = "";
+    static boolean isSlashTyped = false;
 
     JTextField httpTextField;
 
@@ -89,6 +95,50 @@ public class HttpTextEditorGUI extends JFrame {
         // 中间的富文本编辑框
         detailTextArea = new PromptTextArea();
         detailTextArea.setEditable(false);
+
+
+        // 创建下拉列表
+        JPopupMenu popupMenu = new JPopupMenu();
+
+
+        detailTextArea.addKeyListener(new KeyAdapter() {
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+
+
+                String text = detailTextArea.getText();
+                int position = detailTextArea.getCaretPosition() - 1;
+
+                // 检测是否连续输入了"{{"
+                if (position > 0 && text.charAt(position) == '{' && text.charAt(position - 1) == '{') {
+                    isSlashTyped = true;
+                    filterText = ""; // 重置过滤文本
+                    showMenu(position, popupMenu,"");
+                }else if (isSlashTyped){
+                    filterText += e.getKeyChar();
+                    showMenu(position,popupMenu,filterText);
+                }
+
+                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE && filterText.length() > 0) {
+                    filterText = filterText.substring(0, filterText.length() - 1);
+                    showMenu(position,popupMenu,filterText);
+                }
+                // 如果用户输入空格或选择了一个选项，重置
+                if (e.getKeyChar() == ' ' || !popupMenu.isShowing()) {
+                    isSlashTyped = false;
+                    filterText = "";
+                }
+            }
+        });
+
+        detailTextArea.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                backEndServer.savePromptContent(detailTextArea);
+            }
+        });
+
         JScrollPane textScrollPane = new JScrollPane(detailTextArea);
 
         // 右侧HTTP请求部分
@@ -125,6 +175,79 @@ public class HttpTextEditorGUI extends JFrame {
         getContentPane().add(statusBar, BorderLayout.SOUTH);
 
 
+    }
+
+    private void showMenu(int position, JPopupMenu popupMenu,String extractedString) {
+        initialMenu(popupMenu,extractedString);
+        SwingUtilities.invokeLater(() -> {
+            // 将光标位置转换为屏幕坐标
+            try {
+                Rectangle2D rect = detailTextArea.modelToView2D(position);
+                // 显示下拉列表
+                popupMenu.show(detailTextArea, (int) rect.getX(), (int) (rect.getY() + rect.getHeight()));
+                detailTextArea.requestFocusInWindow();
+            } catch (BadLocationException ex) {
+                throw new RuntimeException(ex);
+            }
+
+        });
+    }
+
+    private static String extractStringToLastBrace(String text, int caretPosition) {
+        int bracePosition = text.lastIndexOf('{', caretPosition - 1);
+        if (bracePosition == -1) {
+            // '{' not found
+            return "";
+        }
+        // Note: Substring starts from bracePosition + 1 to skip the '{' itself.
+        return text.substring(bracePosition + 1, caretPosition);
+    }
+
+    private void initialMenu(JPopupMenu popupMenu, String extractedString) {
+        popupMenu.removeAll();
+        PromptNode sectionRoot = rootData.getSectionRoot();
+        if (sectionRoot == null || sectionRoot.getChildren() == null || sectionRoot.getChildren().size() == 0) {
+            return;
+        }
+        List<PromptNode> allSections = getAllSections(sectionRoot);
+        List<PromptNode> filterSections = allSections.stream().filter(o -> o.getName().contains(extractedString)).toList();
+        filterSections.forEach(node -> {
+            PromptMenuItem menuItem = new PromptMenuItem(node.getName(), node);
+            menuItem.addActionListener(e -> {
+                int caretPosition = detailTextArea.getCaretPosition(); // 获取光标当前位置
+                int slashPosition = caretPosition - filterText.length();
+                try {
+                    detailTextArea.getDocument().remove(slashPosition, filterText.length());
+                } catch (BadLocationException ex) {
+                    throw new RuntimeException(ex);
+                }
+                detailTextArea.append(" section_name:" + node.getName() + " }}");
+                popupMenu.setVisible(false);
+                isSlashTyped=false;
+                detailTextArea.requestFocusInWindow();
+            });
+            popupMenu.add(menuItem);
+        });
+
+    }
+    @NotNull
+    private List<PromptNode> getAllSections(PromptNode sectionRoot) {
+        if (sectionRoot == null || sectionRoot.getChildren() == null || sectionRoot.getChildren().size() == 0) {
+            return new ArrayList<>();
+        }
+        List<PromptNode> list = new ArrayList<>(sectionRoot.getChildren().size());
+        for (PromptNode node : sectionRoot.getChildren()) {
+            if (detailTextArea != null && detailTextArea.getSelectNode() != null
+                    && node.getId().equals(detailTextArea.getSelectNode().getId())){
+                continue;
+            }
+            if (node.isSection()) {
+                list.add(node);
+            }
+            List<PromptNode> childList = getAllSections(node);
+            list.addAll(childList);
+        }
+        return list;
     }
 
     // 显示消息的方法
@@ -167,7 +290,7 @@ public class HttpTextEditorGUI extends JFrame {
         if (detailTextArea == null) {
             return;
         }
-        PromptNode node = detailTextArea.getNode();
+        PromptNode node = detailTextArea.getSelectNode();
         if (node == null) {
             return;
         }
@@ -375,7 +498,7 @@ public class HttpTextEditorGUI extends JFrame {
             } else {
                 t = Double.parseDouble(temperatureField.getText());
             }
-            if (detailTextArea == null || detailTextArea.getNode() == null) {
+            if (detailTextArea == null || detailTextArea.getSelectNode() == null) {
                 return;
             }
             //异步保存
@@ -402,11 +525,11 @@ public class HttpTextEditorGUI extends JFrame {
             request.setModel((String) modelComboBox.getSelectedItem());
             request.setTemperature(t);
             request.setPrompt(content);
-            request.setPromptId(detailTextArea.getNode().getId());
-            request.setType(detailTextArea.getNode().getType());
+            request.setPromptId(detailTextArea.getSelectNode().getId());
+            request.setType(detailTextArea.getSelectNode().getType());
             String response = backEndServer.sendRequest(request, httpTextField.getText());
             httpResponseArea.setText(response);
-            flashHistoryTo(detailTextArea.getNode());
+            flashHistoryTo(detailTextArea.getSelectNode());
         });
         JButton publishButton = new JButton("发布prompt");
         publishButton.addActionListener(e -> {
@@ -416,13 +539,13 @@ public class HttpTextEditorGUI extends JFrame {
             } else {
                 t = Double.parseDouble(temperatureField.getText());
             }
-            if (detailTextArea == null || detailTextArea.getNode() == null) {
+            if (detailTextArea == null || detailTextArea.getSelectNode() == null) {
                 return;
             }
             //同步保存
             backEndServer.savePromptContent(detailTextArea);
 
-            publish((String) modelComboBox.getSelectedItem(),t);
+            publish((String) modelComboBox.getSelectedItem(), t);
         });
         JScrollPane httpResponseScrollPane = new JScrollPane(httpResponseArea);
         JScrollPane requestParamsScrollPane = new JScrollPane(requestParamsTextArea); // 为了滚动
@@ -694,13 +817,14 @@ public class HttpTextEditorGUI extends JFrame {
 
 
     private void publish(String model, double t) {
-        if (detailTextArea.getNode() == null || !detailTextArea.getNode().getType().equalsIgnoreCase(TreeType.PROMPT.type())){
-            showStatusMessage("发布节点异常，请检查是否为prompt。","Error");
+        if (detailTextArea.getSelectNode() == null || !detailTextArea.getSelectNode().getType().equalsIgnoreCase(TreeType.PROMPT.type())) {
+            handleResponse(false, "发布Prompt");
+            showStatusMessage("发布节点异常，请检查是否为prompt。", "Error");
             return;
         }
 
-       boolean isOk = backEndServer.publishPrompt(detailTextArea.getNode().getId(),model,t);
-        handleResponse(isOk,"发布Prompt");
+        boolean isOk = backEndServer.publishPrompt(detailTextArea.getSelectNode().getId(), model, t);
+        handleResponse(isOk, "发布Prompt");
     }
 
     private static DefaultMutableTreeNode convertToTreeNode(PromptNode promptNode) {
